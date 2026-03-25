@@ -1,15 +1,13 @@
 package com.udea.FinanceTracker.util;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.nimbusds.jwt.JWTParser;
+import com.nimbusds.jwt.SignedJWT;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,8 +17,6 @@ public class GoogleTokenVerifier {
     @Value("${google.client-id:}")
     private String googleClientId;
 
-    private GoogleIdTokenVerifier verifier;
-
     /**
      * Verify Google ID Token and extract user information
      */
@@ -29,26 +25,29 @@ public class GoogleTokenVerifier {
             throw new RuntimeException("Google Client ID is not configured");
         }
 
-        if (verifier == null) {
-            verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new JacksonFactory())
-                    .setAudience(Collections.singletonList(googleClientId))
-                    .build();
+        try {
+            // Parse the JWT token
+            SignedJWT signedJWT = (SignedJWT) JWTParser.parse(idToken);
+
+            // Extract claims
+            Map<String, Object> claims = signedJWT.getJWTClaimsSet().getClaims();
+
+            // Verify that the token is for our application
+            String tokenClientId = (String) claims.get("aud");
+            if (!googleClientId.equals(tokenClientId)) {
+                throw new RuntimeException("Token audience does not match application client ID");
+            }
+
+            Map<String, String> userInfo = new HashMap<>();
+            userInfo.put("googleId", (String) claims.get("sub"));
+            userInfo.put("email", (String) claims.get("email"));
+            userInfo.put("name", (String) claims.get("name"));
+            userInfo.put("picture", (String) claims.get("picture"));
+
+            return userInfo;
+        } catch (Exception e) {
+            throw new IOException("Failed to verify Google token: " + e.getMessage(), e);
         }
-
-        GoogleIdToken token = verifier.verify(idToken);
-        if (token == null) {
-            throw new RuntimeException("Invalid ID token.");
-        }
-
-        GoogleIdToken.Payload payload = token.getPayload();
-
-        Map<String, String> userInfo = new HashMap<>();
-        userInfo.put("googleId", payload.getSubject());
-        userInfo.put("email", payload.getEmail());
-        userInfo.put("name", (String) payload.get("name"));
-        userInfo.put("picture", (String) payload.get("picture"));
-
-        return userInfo;
     }
 }
 
