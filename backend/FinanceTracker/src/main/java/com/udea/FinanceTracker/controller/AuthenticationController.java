@@ -146,6 +146,23 @@ public class AuthenticationController {
     }
 
     /**
+     * Test login endpoint (for development/testing without real Google OAuth)
+     * In production, remove this endpoint
+     */
+    @PostMapping("/test-login")
+    public ResponseEntity<?> testLogin(@RequestParam String email, @RequestParam String name) {
+        try {
+            AuthenticationResponse response = usuarioService.createTestUser(email, name);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error en login de prueba");
+            error.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+    }
+
+    /**
      * Helper method to extract token from Authorization header
      */
     private String extractToken(String authHeader) throws Exception {
