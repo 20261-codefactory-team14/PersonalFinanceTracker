@@ -40,7 +40,12 @@ public class UsuarioService {
             throws GeneralSecurityException, IOException {
 
         // Verify Google token
-        Map<String, String> googleUserInfo = googleTokenVerifier.verifyToken(request.getIdToken());
+        Map<String, String> googleUserInfo = null;
+        try {
+            googleUserInfo = googleTokenVerifier.verifyToken(request.getIdToken());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         String googleId = googleUserInfo.get("googleId");
         String email = googleUserInfo.get("email");
@@ -156,6 +161,45 @@ public class UsuarioService {
 
         String email = jwtUtil.extractEmail(refreshToken);
         return jwtUtil.generateToken(email);
+    }
+
+    /**
+     * Create test user (for development/testing without Google OAuth)
+     * Remove this in production
+     */
+    public AuthenticationResponse createTestUser(String email, String name) throws Exception {
+        // Check if user exists
+        Optional<Usuario> existingUser = usuarioRepository.findByEmail(email);
+
+        Usuario usuario;
+        Boolean isNewUser = false;
+
+        if (existingUser.isPresent()) {
+            usuario = existingUser.get();
+        } else {
+            // Create new user
+            usuario = new Usuario(name, email, null);
+            isNewUser = true;
+            usuarioRepository.save(usuario);
+        }
+
+        // Generate tokens
+        String accessToken = jwtUtil.generateToken(usuario.getEmail());
+        String refreshToken = jwtUtil.generateRefreshToken(usuario.getEmail());
+
+        UsuarioDTO usuarioDTO = usuarioMapper.toDTO(usuario);
+
+        String message = isNewUser ?
+            "Test user created. Please complete your profile." :
+            "Test login successful";
+
+        return AuthenticationResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .profileCompleted(usuario.getProfileCompleted())
+                .usuario(usuarioDTO)
+                .message(message)
+                .build();
     }
 }
 
