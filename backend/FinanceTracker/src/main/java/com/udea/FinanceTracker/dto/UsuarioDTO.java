@@ -20,8 +20,6 @@ public class UsuarioDTO {
     private String googleId;
     private Long idGenero;
     private String fechaNacimiento;
-    private Long numeroIdentificacion;
-    private Long idTipoIdentificacion;
     private Long salario;
     private Long idOcupacion;
     private Boolean profileCompleted;

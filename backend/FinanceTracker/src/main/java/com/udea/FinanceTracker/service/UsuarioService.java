@@ -9,6 +9,8 @@ import com.udea.FinanceTracker.mapper.UsuarioMapper;
 import com.udea.FinanceTracker.repository.UsuarioRepository;
 import com.udea.FinanceTracker.util.GoogleTokenVerifier;
 import com.udea.FinanceTracker.util.JwtUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +22,8 @@ import java.util.Optional;
 
 @Service
 public class UsuarioService {
+
+    private static final Logger logger = LoggerFactory.getLogger(UsuarioService.class);
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -39,17 +43,30 @@ public class UsuarioService {
     public AuthenticationResponse authenticateWithGoogle(GoogleLoginRequest request)
             throws GeneralSecurityException, IOException {
 
+        logger.info("Starting Google authentication process");
+
         // Verify Google token
         Map<String, String> googleUserInfo = null;
         try {
+            logger.info("Verifying Google token...");
             googleUserInfo = googleTokenVerifier.verifyToken(request.getIdToken());
+            logger.info("Google token verified successfully");
+        } catch (GeneralSecurityException e) {
+            logger.error("Google security exception: {}", e.getMessage());
+            throw e;
+        } catch (IOException e) {
+            logger.error("Google IO exception: {}", e.getMessage());
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            logger.error("Unexpected error during Google token verification: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to verify Google token: " + e.getMessage(), e);
         }
 
         String googleId = googleUserInfo.get("googleId");
         String email = googleUserInfo.get("email");
         String name = googleUserInfo.get("name");
+
+        logger.info("Extracted user info - Email: {}, GoogleId: {}", email, googleId);
 
         // Check if user exists
         Optional<Usuario> existingUser = usuarioRepository.findByGoogleId(googleId);
@@ -58,22 +75,28 @@ public class UsuarioService {
         Boolean isNewUser = false;
 
         if (existingUser.isPresent()) {
+            logger.info("Found existing user with Google ID");
             usuario = existingUser.get();
         } else {
+            logger.info("User not found, checking by email...");
             // Check if email exists
             Optional<Usuario> emailUser = usuarioRepository.findByEmail(email);
             if (emailUser.isPresent()) {
+                logger.info("Found existing user by email, updating Google ID");
                 usuario = emailUser.get();
                 usuario.setGoogleId(googleId);
             } else {
                 // Create new user
+                logger.info("Creating new user");
                 usuario = new Usuario(name, email, googleId);
                 isNewUser = true;
             }
             usuarioRepository.save(usuario);
+            logger.info("User saved successfully");
         }
 
         // Generate tokens
+        logger.info("Generating JWT tokens");
         String accessToken = jwtUtil.generateToken(usuario.getEmail());
         String refreshToken = jwtUtil.generateRefreshToken(usuario.getEmail());
 
@@ -82,6 +105,8 @@ public class UsuarioService {
         String message = isNewUser ?
             "New user created. Please complete your profile." :
             "Login successful";
+
+        logger.info("Authentication completed successfully");
 
         return AuthenticationResponse.builder()
                 .accessToken(accessToken)
@@ -135,8 +160,6 @@ public class UsuarioService {
         Usuario usuario = usuarioOpt.get();
 
         usuario.setIdGenero(request.getIdGenero());
-        usuario.setIdTipoIdentificacion(request.getIdTipoIdentificacion());
-        usuario.setNumeroIdentificacion(request.getNumeroIdentificacion());
         usuario.setSalario(request.getSalario());
         usuario.setIdOcupacion(request.getIdOcupacion());
 

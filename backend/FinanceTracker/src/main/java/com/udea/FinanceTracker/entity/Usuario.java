@@ -21,49 +21,41 @@ public class Usuario {
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
-    @Column(name = "googleId", unique = true)
+    @Column(name = "google_id", unique = true)
     private String googleId;
 
-    @Column(name = "idGenero")
+    @Column(name = "id_genero")
     private Long idGenero;
 
-    @Column(name = "fechaNacimiento")
+    @Column(name = "fecha_nacimiento")
     private Date fechaNacimiento;
-
-    @Column(name = "numeroIdentificacion", unique = true)
-    private Long numeroIdentificacion;
-
-    @Column(name = "idTipoIdentificacion")
-    private Long idTipoIdentificacion;
 
     @Column(name = "salario")
     private Long salario;
 
-    @Column(name = "idOcupacion")
+    @Column(name = "id_ocupacion")
     private Long idOcupacion;
 
-    @Column(name = "profileCompleted", nullable = false)
+    @Column(name = "profile_completed", nullable = false)
     private Boolean profileCompleted = false;
 
     @CreationTimestamp
-    @Column(name = "createdAt", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updatedAt")
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     public Usuario() {
     }
 
-    public Usuario(Long id, String nombre, String email, Long idGenero, Date fechaNacimiento, Long numeroIdentificacion, Long idTipoIdentificacion, Long salario, Long idOcupacion) {
+    public Usuario(Long id, String nombre, String email, Long idGenero, Date fechaNacimiento, Long salario, Long idOcupacion) {
         this.id = id;
         this.nombre = nombre;
         this.email = email;
         this.idGenero = idGenero;
         this.fechaNacimiento = fechaNacimiento;
-        this.numeroIdentificacion = numeroIdentificacion;
-        this.idTipoIdentificacion = idTipoIdentificacion;
         this.salario = salario;
         this.idOcupacion = idOcupacion;
         this.profileCompleted = true;
@@ -114,22 +106,6 @@ public class Usuario {
 
     public void setFechaNacimiento(Date fechaNacimiento) {
         this.fechaNacimiento = fechaNacimiento;
-    }
-
-    public Long getNumeroIdentificacion() {
-        return numeroIdentificacion;
-    }
-
-    public void setNumeroIdentificacion(Long numeroIdentificacion) {
-        this.numeroIdentificacion = numeroIdentificacion;
-    }
-
-    public Long getIdTipoIdentificacion() {
-        return idTipoIdentificacion;
-    }
-
-    public void setIdTipoIdentificacion(Long idTipoIdentificacion) {
-        this.idTipoIdentificacion = idTipoIdentificacion;
     }
 
     public Long getSalario() {

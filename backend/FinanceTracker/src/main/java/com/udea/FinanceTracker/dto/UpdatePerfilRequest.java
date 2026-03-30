@@ -12,17 +12,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdatePerfilRequest {
-    @NotBlank(message = "Gender ID is required")
     private Long idGenero;
 
-    @NotBlank(message = "Birth date is required")
     private String fechaNacimiento;
-
-    @NotBlank(message = "Identification number is required")
-    private Long numeroIdentificacion;
-
-    @NotBlank(message = "Identification type ID is required")
-    private Long idTipoIdentificacion;
 
     private Long salario;
 

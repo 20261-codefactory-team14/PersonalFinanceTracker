@@ -6,6 +6,8 @@ import com.udea.FinanceTracker.dto.UpdatePerfilRequest;
 import com.udea.FinanceTracker.dto.UsuarioDTO;
 import com.udea.FinanceTracker.service.UsuarioService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,8 @@ import java.util.Map;
 @CrossOrigin(origins = "*", allowedHeaders = "*")
 public class AuthenticationController {
 
+    private static final Logger logger = LoggerFactory.getLogger(AuthenticationController.class);
+
     @Autowired
     private UsuarioService usuarioService;
 
@@ -30,13 +34,31 @@ public class AuthenticationController {
     @PostMapping("/google-login")
     public ResponseEntity<?> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
         try {
+            logger.info("Google login request received");
             AuthenticationResponse response = usuarioService.authenticateWithGoogle(request);
+            logger.info("Google login successful");
             return ResponseEntity.ok(response);
-        } catch (GeneralSecurityException | IOException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Invalid Google token");
+        } catch (GeneralSecurityException e) {
+            logger.error("General security exception during Google login: {}", e.getMessage(), e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Google token verification failed");
             error.put("message", e.getMessage());
+            error.put("errorType", "GeneralSecurityException");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        } catch (IOException e) {
+            logger.error("IO exception during Google login: {}", e.getMessage(), e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Failed to verify Google token");
+            error.put("message", e.getMessage());
+            error.put("errorType", "IOException");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        } catch (Exception e) {
+            logger.error("Unexpected exception during Google login: {}", e.getMessage(), e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Authentication failed");
+            error.put("message", e.getMessage());
+            error.put("errorType", e.getClass().getSimpleName());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 
