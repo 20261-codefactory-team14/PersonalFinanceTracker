@@ -159,16 +159,21 @@ public class UsuarioService {
 
         Usuario usuario = usuarioOpt.get();
 
-        usuario.setIdGenero(request.getIdGenero());
-        usuario.setSalario(request.getSalario());
-        usuario.setIdOcupacion(request.getIdOcupacion());
-
-        // Parse fecha nacimiento
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        usuario.setFechaNacimiento(dateFormat.parse(request.getFechaNacimiento()));
+        if (request.getIdGenero() != null) {
+            usuario.setIdGenero(request.getIdGenero());
+        }
+        if (request.getSalario() != null) {
+            usuario.setSalario(request.getSalario());
+        }
+        if (request.getIdOcupacion() != null) {
+            usuario.setIdOcupacion(request.getIdOcupacion());
+        }
+        if (request.getFechaNacimiento() != null) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            usuario.setFechaNacimiento(dateFormat.parse(request.getFechaNacimiento()));
+        }
 
         usuario.setProfileCompleted(true);
-
         usuario = usuarioRepository.save(usuario);
 
         return usuarioMapper.toDTO(usuario);
