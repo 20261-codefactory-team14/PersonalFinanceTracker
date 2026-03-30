@@ -159,6 +159,9 @@ public class UsuarioService {
 
         Usuario usuario = usuarioOpt.get();
 
+        if (request.getNombre() != null && !request.getNombre().isBlank()) {
+            usuario.setNombre(request.getNombre());
+        }
         if (request.getIdGenero() != null) {
             usuario.setIdGenero(request.getIdGenero());
         }

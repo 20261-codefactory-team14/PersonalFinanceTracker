@@ -205,6 +205,7 @@ public class AuthenticationController {
                             schema = @Schema(implementation = UpdatePerfilRequest.class),
                             examples = @ExampleObject(value = """
                         {
+                          "nombre": "Juan Pérez",
                           "idGenero": 1,
                           "fechaNacimiento": "2000-01-01",
                           "salario": 2500000,
