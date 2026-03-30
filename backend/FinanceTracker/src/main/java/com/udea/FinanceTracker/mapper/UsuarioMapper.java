@@ -19,9 +19,7 @@ public class UsuarioMapper {
                 .googleId(usuario.getGoogleId())
                 .idGenero(usuario.getIdGenero())
                 .fechaNacimiento(usuario.getFechaNacimiento() != null ?
-                    usuario.getFechaNacimiento().toString() : null)
-                .numeroIdentificacion(usuario.getNumeroIdentificacion())
-                .idTipoIdentificacion(usuario.getIdTipoIdentificacion())
+                        usuario.getFechaNacimiento().toString() : null)
                 .salario(usuario.getSalario())
                 .idOcupacion(usuario.getIdOcupacion())
                 .profileCompleted(usuario.getProfileCompleted())
@@ -40,8 +38,6 @@ public class UsuarioMapper {
         usuario.setEmail(dto.getEmail());
         usuario.setGoogleId(dto.getGoogleId());
         usuario.setIdGenero(dto.getIdGenero());
-        usuario.setNumeroIdentificacion(dto.getNumeroIdentificacion());
-        usuario.setIdTipoIdentificacion(dto.getIdTipoIdentificacion());
         usuario.setSalario(dto.getSalario());
         usuario.setIdOcupacion(dto.getIdOcupacion());
         usuario.setProfileCompleted(dto.getProfileCompleted());
