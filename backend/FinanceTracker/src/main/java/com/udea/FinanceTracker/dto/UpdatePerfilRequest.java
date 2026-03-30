@@ -16,6 +16,12 @@ import lombok.NoArgsConstructor;
 public class UpdatePerfilRequest {
 
     @Schema(
+            description = "Nombre completo del usuario",
+            example = "Juan Pérez"
+    )
+    private String nombre;
+
+    @Schema(
             description = "ID del género del usuario",
             example = "1",
             nullable = true
