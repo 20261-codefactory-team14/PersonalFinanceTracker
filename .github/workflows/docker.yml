@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build-and-push:
+  build-and-push-docker:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,7 +18,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/personalfinancetracker:latest .
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/personalfinancetracker:latest ./backend
 
       - name: Push Docker image
         run: |
