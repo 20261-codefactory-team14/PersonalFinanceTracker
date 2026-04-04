@@ -21,13 +21,103 @@ jobs:
       - name: Build with Maven
         run: mvn clean package -DskipTests
 
-      - name: Deploy to Render via API
+      - name: Debug - Verificar secrets (ocultos)
+        run: |
+          echo "🔍 Verificando existencia de secrets..."
+          if [ -n "${{ secrets.RENDER_API_KEY }}" ]; then
+            echo "✅ RENDER_API_KEY existe (longitud: ${#RENDER_API_KEY} caracteres)"
+          else
+            echo "❌ RENDER_API_KEY NO está configurado"
+          fi
+          
+          if [ -n "${{ secrets.RENDER_SERVICE_ID }}" ]; then
+            echo "✅ RENDER_SERVICE_ID existe (longitud: ${#RENDER_SERVICE_ID} caracteres)"
+          else
+            echo "❌ RENDER_SERVICE_ID NO está configurado"
+          fi
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+
+      - name: Deploy to Render via API (con diagnóstico)
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
         run: |
-          curl -X POST \
+          echo "🚀 Iniciando despliegue a Render..."
+          echo "📡 Service ID: $RENDER_SERVICE_ID"
+          echo "🔑 API Key (primeros 10 chars): ${RENDER_API_KEY:0:10}..."
+          
+          # Ejecutar curl y capturar respuesta completa, headers y código HTTP
+          RESPONSE_FILE=$(mktemp)
+          HEADERS_FILE=$(mktemp)
+          
+          HTTP_CODE=$(curl -w "%{http_code}" -s -X POST \
             -H "Authorization: Bearer $RENDER_API_KEY" \
             -H "Content-Type: application/json" \
             -d '{"clearCache": true}' \
-            "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys"
+            -D "$HEADERS_FILE" \
+            -o "$RESPONSE_FILE" \
+            "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys")
+          
+          echo ""
+          echo "📊 RESULTADO DEL DEPLOY:"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✅ Código HTTP: $HTTP_CODE"
+          echo ""
+          echo "📋 Headers de respuesta:"
+          cat "$HEADERS_FILE"
+          echo ""
+          echo "📄 Cuerpo de respuesta:"
+          cat "$RESPONSE_FILE"
+          echo ""
+          
+          # Analizar el resultado
+          if [ "$HTTP_CODE" -eq 201 ]; then
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "✅ ¡DEPLOY EXITOSO! Render recibió el comando."
+            echo "🎉 El despliegue está en progreso."
+            exit 0
+          elif [ "$HTTP_CODE" -eq 401 ]; then
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "❌ ERROR DE AUTENTICACIÓN (401)"
+            echo "🔧 Causa: RENDER_API_KEY es inválido o expiró"
+            echo "💡 Solución: Genera una nueva API Key en Render → Account Settings → API Keys"
+            exit 1
+          elif [ "$HTTP_CODE" -eq 404 ]; then
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "❌ SERVICIO NO ENCONTRADO (404)"
+            echo "🔧 Causa: RENDER_SERVICE_ID es incorrecto"
+            echo "💡 Solución: Verifica el Service ID en Render → Dashboard → URL del servicio"
+            exit 1
+          elif [ "$HTTP_CODE" -eq 403 ]; then
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "❌ PERMISO DENEGADO (403)"
+            echo "🔧 Causa: La API Key no tiene permisos para este servicio"
+            echo "💡 Solución: Asegúrate de que la API Key sea del propietario del servicio"
+            exit 1
+          elif [ "$HTTP_CODE" -eq 429 ]; then
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "⚠️ DEMASIADAS SOLICITUDES (429)"
+            echo "🔧 Causa: Límite de tasa de API excedido"
+            echo "💡 Solución: Espera unos minutos y vuelve a intentar"
+            exit 1
+          elif [ "$HTTP_CODE" -ge 500 ]; then
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "❌ ERROR DEL SERVIDOR DE RENDER ($HTTP_CODE)"
+            echo "🔧 Causa: Problema temporal en Render"
+            echo "💡 Solución: Vuelve a intentar en unos minutos"
+            exit 1
+          else
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "❌ ERROR DESCONOCIDO (Código: $HTTP_CODE)"
+            echo "🔧 Revisa el cuerpo de la respuesta arriba para más detalles"
+            exit 1
+          fi
+
+      - name: Verificar estado del deploy (opcional)
+        if: success()
+        run: |
+          echo ""
+          echo "🔍 Puedes ver el progreso del deploy en:"
+          echo "https://dashboard.render.com/web/${{ secrets.RENDER_SERVICE_ID }}"
