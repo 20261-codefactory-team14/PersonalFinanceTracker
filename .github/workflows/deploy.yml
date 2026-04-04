@@ -57,7 +57,7 @@ jobs:
           HTTP_CODE=$(curl -w "%{http_code}" -s -X POST \
             -H "Authorization: Bearer $RENDER_API_KEY" \
             -H "Content-Type: application/json" \
-            -d '{"clearCache": true}' \
+            -d '{}' \
             -D "$HEADERS_FILE" \
             -o "$RESPONSE_FILE" \
             "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys")
