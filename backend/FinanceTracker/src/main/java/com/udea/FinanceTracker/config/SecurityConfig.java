@@ -44,6 +44,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/", "/health", "/ping").permitAll()
                         .requestMatchers("/api/auth/google-login").permitAll()
                         .requestMatchers("/api/auth/test-login").permitAll()
                         .requestMatchers("/api/auth/validate-token").permitAll()
