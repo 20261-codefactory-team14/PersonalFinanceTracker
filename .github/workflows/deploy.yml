@@ -19,7 +19,9 @@ jobs:
           distribution: 'temurin'
 
       - name: Build with Maven
-        run: mvn clean package -DskipTests
+        run: |
+          cd backend/FinanceTracker
+          mvn clean package -DskipTests
 
       - name: Debug - Verificar secrets (ocultos)
         run: |
