@@ -32,3 +32,10 @@ replay_pid*
 target/
 
 *.properties  # si tiene credenciales
+
+
+# Visual Studio Code configuation
+.vs/
+*.sqlite
+ProjectSettings.json
+VSWorkspaceState.json
