@@ -2,116 +2,95 @@ name: Build, Push and Deploy to Render
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+
+env:
+  APP_NAME: personalfinancetracker
+  IMAGE_TAG: latest
+  WORKING_DIRECTORY: ./backend/FinanceTracker
 
 jobs:
-  build-push-deploy:
+  tests:
+    name: Run Tests
+    if: false
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout código
-      - name: Checkout repository
+      - name: Checkout source code
         uses: actions/checkout@v4
 
-      # 2. Configurar Java
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+          cache: maven
 
-      # 3. Construir JAR con Maven
-      - name: Build JAR with Maven
+      - name: Execute unit tests
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: mvn test
+
+  build_and_push_docker:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build application package
+        working-directory: ${{ env.WORKING_DIRECTORY }}
         run: mvn clean package -DskipTests
-        working-directory: ./backend/FinanceTracker
 
-      # 4. Login a Docker Hub
-      - name: Login to Docker Hub
+      - name: Log in to Docker Hub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-      # 5. Construir imagen Docker
       - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/personalfinancetracker:latest ./backend/FinanceTracker
-
-      # 6. Subir imagen a Docker Hub
-      - name: Push Docker image to Docker Hub
-        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/personalfinancetracker:latest
-
-      # 7. Verificar secrets de Render
-      - name: Debug - Verificar secrets de Render
         run: |
-          echo "🔍 Verificando existencia de secrets..."
-          if [ -n "${{ secrets.RENDER_API_KEY }}" ]; then
-            echo "✅ RENDER_API_KEY existe"
-          else
-            echo "❌ RENDER_API_KEY NO está configurado"
-          fi
-          
-          if [ -n "${{ secrets.RENDER_SERVICE_ID }}" ]; then
-            echo "✅ RENDER_SERVICE_ID existe"
-          else
-            echo "❌ RENDER_SERVICE_ID NO está configurado"
-          fi
+          docker build \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }} \
+            ${{ env.WORKING_DIRECTORY }}
 
-      # 8. Notificar a Render con limpieza de caché
-      - name: Trigger Render Deploy (clear cache)
+      - name: Push Docker image
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}
+
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    needs: build_and_push_docker
+
+    steps:
+      - name: Trigger Render deployment
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
         run: |
-          echo "🚀 Notificando a Render para descargar nueva imagen..."
-          
-          RESPONSE_FILE=$(mktemp)
-          HEADERS_FILE=$(mktemp)
-          
-          HTTP_CODE=$(curl -w "%{http_code}" -s -X POST \
+          set -e
+
+          echo "Triggering deployment on Render..."
+
+          http_code=$(curl -s -o response.json -w "%{http_code}" -X POST \
             -H "Authorization: Bearer $RENDER_API_KEY" \
             -H "Content-Type: application/json" \
-            -d '{"clearCache": "clear"}' \
-            -D "$HEADERS_FILE" \
-            -o "$RESPONSE_FILE" \
+            -d '{"clearCache":"clear"}' \
             "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys")
-          
-          echo "📊 RESULTADO DEL DEPLOY:"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "✅ Código HTTP: $HTTP_CODE"
-          echo "📄 Respuesta: $(cat "$RESPONSE_FILE")"
-          
-          # Analizar el resultado
-          if [ "$HTTP_CODE" -eq 201 ]; then
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "✅ ¡DEPLOY EXITOSO! Render descargará la nueva imagen"
-            exit 0
-          elif [ "$HTTP_CODE" -eq 401 ]; then
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "❌ ERROR DE AUTENTICACIÓN (401)"
-            echo "🔧 Causa: RENDER_API_KEY inválido o expiró"
-            exit 1
-          elif [ "$HTTP_CODE" -eq 404 ]; then
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "❌ SERVICIO NO ENCONTRADO (404)"
-            echo "🔧 Causa: RENDER_SERVICE_ID incorrecto"
-            exit 1
-          elif [ "$HTTP_CODE" -eq 403 ]; then
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "❌ PERMISO DENEGADO (403)"
-            echo "🔧 Causa: API Key sin permisos para este servicio"
-            exit 1
-          elif [ "$HTTP_CODE" -ge 500 ]; then
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "❌ ERROR DEL SERVIDOR DE RENDER ($HTTP_CODE)"
-            echo "🔧 Causa: Problema temporal en Render"
-            exit 1
-          else
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "❌ ERROR DESCONOCIDO (Código: $HTTP_CODE)"
+
+          echo "HTTP status: $http_code"
+          echo "Response:"
+          cat response.json
+
+          if [ "$http_code" != "201" ]; then
+            echo "Render deployment failed."
             exit 1
           fi
 
-      # 9. Información final
-      - name: Deploy info
-        if: success()
-        run: |
-          echo ""
-          echo "🎉 Pipeline completado exitosamente"
-          echo "🔍 Ver el progreso en: https://dashboard.render.com/web/${{ secrets.RENDER_SERVICE_ID }}"
+      - name: Show deployment information
+        run: echo "Deployment triggered successfully."
