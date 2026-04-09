@@ -39,3 +39,4 @@ target/
 *.sqlite
 ProjectSettings.json
 VSWorkspaceState.json
+**/.vs/
