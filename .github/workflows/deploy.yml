@@ -12,11 +12,15 @@ env:
 
 jobs:
   unit-tests:
-    name: Unit tests 
+    name: Build tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
+
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
 
     steps:
       - name: Checkout
@@ -30,14 +34,18 @@ jobs:
           cache: 'maven'
 
       - name: Build sin ejecutar tests
-        run: mvn -B -DskipTests=true test
+        run: mvn -B -DskipTests=true package
 
   sonar:
-    name: Build & SonarCloud
+    name: Build & SonarCloud (sin tests)
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
+
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
 
     steps:
       - name: Checkout
@@ -45,10 +53,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up JDK 21
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: '17'
           distribution: 'zulu'
           cache: 'maven'
 
@@ -59,7 +67,7 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      - name: Build & analyze (SonarCloud) sin tests
+      - name: Build & analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
