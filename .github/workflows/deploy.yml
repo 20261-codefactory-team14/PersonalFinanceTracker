@@ -78,7 +78,7 @@ jobs:
             -Dsonar.projectKey=20261-codefactory-team14_PersonalFinanceTracker \
             -Dsonar.organization=20261-codefactory-team14 \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.login=${SONAR_TOKEN} \
+            -Dsonar.token=${SONAR_TOKEN} \
             -Dsonar.qualitygate.wait=true
 
   build_and_push_docker:
