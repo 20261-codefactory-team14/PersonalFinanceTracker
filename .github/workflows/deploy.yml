@@ -73,8 +73,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mvn -B -DskipTests=true verify sonar:sonar \
-            -Dsonar.projectKey=telconova_telconova \
-            -Dsonar.organization=telconova \
+            -Dsonar.projectKey=20261-codefactory-team14 \
+            -Dsonar.organization=20261-codefactory-team14 \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=${SONAR_TOKEN} \
             -Dsonar.qualitygate.wait=true
