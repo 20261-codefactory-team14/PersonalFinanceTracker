@@ -73,7 +73,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mvn -B -DskipTests=true verify sonar:sonar \
-            -Dsonar.projectKey=20261-codefactory-team14 \
+            -Dsonar.projectKey=20261-codefactory-team14_PersonalFinanceTracker \
             -Dsonar.organization=20261-codefactory-team14 \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=${SONAR_TOKEN} \
