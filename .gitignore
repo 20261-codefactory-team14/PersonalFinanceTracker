@@ -32,3 +32,5 @@ replay_pid*
 target/
 
 *.properties  # si tiene credenciales
+
+.env
