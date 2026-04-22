@@ -2,6 +2,7 @@ package com.udea.FinanceTracker.config;
 
 import com.udea.FinanceTracker.service.UsuarioService;
 import com.udea.FinanceTracker.util.JwtUtil;
+import com.udea.FinanceTracker.util.JwtBlacklist;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,9 +19,11 @@ import java.util.List;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final JwtBlacklist jwtBlacklist;
 
-    public JwtAuthFilter(JwtUtil jwtUtil) {
+    public JwtAuthFilter(JwtUtil jwtUtil, JwtBlacklist jwtBlacklist) {
         this.jwtUtil = jwtUtil;
+        this.jwtBlacklist = jwtBlacklist;
     }
 
     @Override
@@ -35,6 +38,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String token = authHeader.substring(7);
 
             try {
+                // Check if token is blacklisted (user deleted their account)
+                if (jwtBlacklist.isBlacklisted(token)) {
+                    // Token is blacklisted, don't authenticate
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 if (jwtUtil.validateToken(token)) {
                     String email = jwtUtil.extractEmail(token);
 
