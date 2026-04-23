@@ -506,5 +506,62 @@ public class AuthenticationController {
         }
         return authHeader.substring(7);
     }
+
+    /**
+     * Logout user
+     */
+    @Operation(
+            summary = "Cerrar sesión",
+            description = "Invalida el access token enviado en Authorization y, si se envía, también el refresh token. En una app sin frontend, el cliente debe eliminar los tokens almacenados.",
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Sesión cerrada exitosamente",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = """
+                            {
+                              "success": true,
+                              "message": "Sesión cerrada correctamente"
+                            }
+                            """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Token inválido o faltante",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(value = """
+                            {
+                              "error": "Authorization header is missing or invalid"
+                            }
+                            """)
+                    )
+            )
+    })
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody(required = false) Map<String, String> body) {
+        try {
+            String accessToken = extractToken(authHeader);
+            String refreshToken = body != null ? body.get("refreshToken") : null;
+
+            usuarioService.logout(accessToken, refreshToken);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Sesión cerrada correctamente");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+    }
 }
 

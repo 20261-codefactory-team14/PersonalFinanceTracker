@@ -238,6 +238,25 @@ public class UsuarioService {
                 .build();
     }
 
+    /**
+     * Logout user by blacklisting the access token and optionally the refresh token
+     * Since this application uses stateless JWT, logout is handled by token invalidation.
+     *
+     * @param accessToken access token from Authorization header
+     * @param refreshToken optional refresh token to invalidate as well
+     */
+    public void logout(String accessToken, String refreshToken) {
+        if (accessToken != null && !accessToken.trim().isEmpty()) {
+            jwtBlacklist.blacklistToken(accessToken);
+            logger.info("Access token blacklisted successfully");
+        }
+
+        if (refreshToken != null && !refreshToken.trim().isEmpty()) {
+            jwtBlacklist.blacklistToken(refreshToken);
+            logger.info("Refresh token blacklisted successfully");
+        }
+    }
+
 
     /**
      * Delete user account permanently
