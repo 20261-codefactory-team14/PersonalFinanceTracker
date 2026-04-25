@@ -1,3 +1,5 @@
+
+
 # Compiled class file
 *.class
 
@@ -32,6 +34,7 @@ replay_pid*
 target/
 
 *.properties  # si tiene credenciales
+**/application-local.properties
 
 
 # Visual Studio Code configuation
