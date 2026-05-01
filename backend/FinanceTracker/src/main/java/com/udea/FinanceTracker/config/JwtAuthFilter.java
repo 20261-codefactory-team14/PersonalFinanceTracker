@@ -1,19 +1,18 @@
 package com.udea.FinanceTracker.config;
 
-import com.udea.FinanceTracker.service.UsuarioService;
-import com.udea.FinanceTracker.util.JwtUtil;
 import com.udea.FinanceTracker.util.JwtBlacklist;
+import com.udea.FinanceTracker.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.List;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -27,38 +26,50 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
+        try {
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
 
-            try {
-                // Check if token is blacklisted (user deleted their account)
+                // Prints para depurar
+                System.out.println("URI: " + request.getRequestURI());
+                System.out.println("AUTH: " + authHeader);
+                System.out.println("VALID: " + jwtUtil.validateToken(token));
+                System.out.println("EMAIL: " + jwtUtil.extractEmail(token));
+
                 if (jwtBlacklist.isBlacklisted(token)) {
-                    // Token is blacklisted, don't authenticate
-                    filterChain.doFilter(request, response);
+                    SecurityContextHolder.clearContext();
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     return;
                 }
 
                 if (jwtUtil.validateToken(token)) {
                     String email = jwtUtil.extractEmail(token);
 
-                    // Le dice a Spring Security que este request está autenticado
                     UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(email, null, List.of());
+                            new UsernamePasswordAuthenticationToken(
+                                    email,
+                                    null,
+                                    AuthorityUtils.NO_AUTHORITIES
+                            );
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
-            } catch (Exception ignored) {
-                // Token inválido, Spring Security bloqueará el acceso
             }
-        }
 
-        filterChain.doFilter(request, response);
+            filterChain.doFilter(request, response);
+
+        } catch (Exception e) {
+            System.out.println("ERROR JWT: " + e.getMessage());
+            SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        }
     }
 }
