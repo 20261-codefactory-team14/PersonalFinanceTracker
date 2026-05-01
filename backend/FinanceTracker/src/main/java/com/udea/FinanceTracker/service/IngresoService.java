@@ -1,6 +1,7 @@
 package com.udea.FinanceTracker.service;
 
 import com.udea.FinanceTracker.dto.IngresoDTO;
+import com.udea.FinanceTracker.dto.IngresoResponseDTO;
 import com.udea.FinanceTracker.entity.Ingreso;
 import com.udea.FinanceTracker.entity.Usuario;
 import com.udea.FinanceTracker.mapper.IngresoMapper;
@@ -22,29 +23,38 @@ public class IngresoService {
         this.usuarioRepository = usuarioRepository;
     }
 
-    public Ingreso crearIngreso(IngresoDTO dto) {
+    public IngresoResponseDTO crearIngreso(IngresoDTO dto) {
         Usuario usuario = usuarioRepository.findById(dto.getIdUsuario())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         Ingreso ingreso = IngresoMapper.toEntity(dto, usuario);
+        Ingreso ingresoGuardado = ingresoRepository.save(ingreso);
 
-        return ingresoRepository.save(ingreso);
+        return IngresoMapper.toResponseDTO(ingresoGuardado);
     }
 
-    public List<Ingreso> listarIngresos() {
-        return ingresoRepository.findAll();
+    public List<IngresoResponseDTO> listarIngresos() {
+        return ingresoRepository.findAll()
+                .stream()
+                .map(IngresoMapper::toResponseDTO)
+                .toList();
     }
 
-    public Ingreso obtenerIngresoPorId(Long id) {
-        return ingresoRepository.findById(id)
+    public IngresoResponseDTO obtenerIngresoPorId(Long id) {
+        Ingreso ingreso = ingresoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ingreso no encontrado"));
+
+        return IngresoMapper.toResponseDTO(ingreso);
     }
 
-    public List<Ingreso> listarIngresosPorUsuario(Long idUsuario) {
-        return ingresoRepository.findByUsuario_Id(idUsuario);
+    public List<IngresoResponseDTO> listarIngresosPorUsuario(Long idUsuario) {
+        return ingresoRepository.findByUsuario_Id(idUsuario)
+                .stream()
+                .map(IngresoMapper::toResponseDTO)
+                .toList();
     }
 
-    public Ingreso actualizarIngreso(Long id, IngresoDTO dto) {
+    public IngresoResponseDTO actualizarIngreso(Long id, IngresoDTO dto) {
         Ingreso ingreso = ingresoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ingreso no encontrado"));
 
@@ -56,7 +66,9 @@ public class IngresoService {
         ingreso.setDescripcion(dto.getDescripcion());
         ingreso.setUsuario(usuario);
 
-        return ingresoRepository.save(ingreso);
+        Ingreso ingresoActualizado = ingresoRepository.save(ingreso);
+
+        return IngresoMapper.toResponseDTO(ingresoActualizado);
     }
 
     public void eliminarIngreso(Long id) {

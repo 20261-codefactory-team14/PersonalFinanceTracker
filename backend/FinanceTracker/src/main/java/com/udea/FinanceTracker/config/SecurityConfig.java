@@ -47,9 +47,9 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
                         //.requestMatchers("/api/gastos").permitAll()
-                        //.requestMatchers("/api/ingresos").permitAll()
+                        .requestMatchers("/api/ingresos").authenticated()
                         //.requestMatchers("/api/gastos/**").permitAll()
-                        //.requestMatchers("/api/ingresos/**").permitAll()
+                        .requestMatchers("/api/ingresos/**").authenticated()
                         .requestMatchers("/api/auth/google-login").permitAll()
                         .requestMatchers("/api/auth/test-login").permitAll()
                         .requestMatchers("/api/auth/validate-token").permitAll()
@@ -77,4 +77,3 @@ public class SecurityConfig {
         return source;
     }
 }
-
