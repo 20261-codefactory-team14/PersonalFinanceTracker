@@ -38,12 +38,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
 
-                // Prints para depurar
-                System.out.println("URI: " + request.getRequestURI());
-                System.out.println("AUTH: " + authHeader);
-                System.out.println("VALID: " + jwtUtil.validateToken(token));
-                System.out.println("EMAIL: " + jwtUtil.extractEmail(token));
-
                 if (jwtBlacklist.isBlacklisted(token)) {
                     SecurityContextHolder.clearContext();
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

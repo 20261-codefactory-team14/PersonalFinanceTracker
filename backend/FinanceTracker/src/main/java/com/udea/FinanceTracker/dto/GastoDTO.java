@@ -19,9 +19,9 @@ public class GastoDTO {
 
     @Schema(description = "ID del usuario", example = "1")
     private Long idUsuario;
-    /** TODO: Agregar categoria
-     * private Categoria categoria;
-     * **/
+
+    @Schema(description = "ID de la categoría", example = "2")
+    private Long idCategoria;
 
     public BigDecimal getValor() { return valor; }
     public void setValor(BigDecimal valor) { this.valor = valor; }
@@ -35,9 +35,6 @@ public class GastoDTO {
     public Long getIdUsuario() { return idUsuario; }
     public void setIdUsuario(Long idUsuario) { this.idUsuario = idUsuario; }
 
-    /** TODO: Agregar categoria
-     * public Long getIdCategoria() { return idCategoria; }
-     * public void setIdCategoria(Long idCategoria) { this.idCategoria = idCategoria;
-     * */
-
+    public Long getIdCategoria() { return idCategoria; }
+    public void setIdCategoria(Long idCategoria) { this.idCategoria = idCategoria; }
 }

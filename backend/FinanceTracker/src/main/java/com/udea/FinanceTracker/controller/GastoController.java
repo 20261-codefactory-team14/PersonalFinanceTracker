@@ -1,7 +1,7 @@
 package com.udea.FinanceTracker.controller;
 
 import com.udea.FinanceTracker.dto.GastoDTO;
-import com.udea.FinanceTracker.entity.Gasto;
+import com.udea.FinanceTracker.dto.GastoResponseDTO;
 import com.udea.FinanceTracker.service.GastoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,38 +23,37 @@ public class GastoController {
 
     @Operation(summary = "Crear gasto", description = "Crea un nuevo gasto asociado a un usuario y una categoría")
     @PostMapping
-    public ResponseEntity<Gasto> crearGasto(@RequestBody GastoDTO dto) {
+    public ResponseEntity<GastoResponseDTO> crearGasto(@RequestBody GastoDTO dto) {
         return ResponseEntity.ok(gastoService.crearGasto(dto));
     }
 
     @Operation(summary = "Listar gastos", description = "Obtiene todos los gastos registrados")
     @GetMapping
-    public ResponseEntity<List<Gasto>> listarGastos() {
+    public ResponseEntity<List<GastoResponseDTO>> listarGastos() {
         return ResponseEntity.ok(gastoService.listarGastos());
     }
 
     @Operation(summary = "Obtener gasto por ID", description = "Obtiene un gasto específico por su ID")
     @GetMapping("/{id}")
-    public ResponseEntity<Gasto> obtenerGastoPorId(@PathVariable Long id) {
+    public ResponseEntity<GastoResponseDTO> obtenerGastoPorId(@PathVariable Long id) {
         return ResponseEntity.ok(gastoService.obtenerGastoPorId(id));
     }
 
     @Operation(summary = "Listar gastos por usuario", description = "Obtiene los gastos asociados a un usuario")
     @GetMapping("/usuario/{idUsuario}")
-    public ResponseEntity<List<Gasto>> listarGastosPorUsuario(@PathVariable Long idUsuario) {
+    public ResponseEntity<List<GastoResponseDTO>> listarGastosPorUsuario(@PathVariable Long idUsuario) {
         return ResponseEntity.ok(gastoService.listarGastosPorUsuario(idUsuario));
     }
 
-    /** TODO AGREGAR CATEGORIA
     @Operation(summary = "Listar gastos por categoría", description = "Obtiene los gastos asociados a una categoría")
     @GetMapping("/categoria/{idCategoria}")
-    public ResponseEntity<List<Gasto>> listarGastosPorCategoria(@PathVariable Long idCategoria) {
+    public ResponseEntity<List<GastoResponseDTO>> listarGastosPorCategoria(@PathVariable Long idCategoria) {
         return ResponseEntity.ok(gastoService.listarGastosPorCategoria(idCategoria));
     }
-*/
+
     @Operation(summary = "Actualizar gasto", description = "Actualiza un gasto existente")
     @PutMapping("/{id}")
-    public ResponseEntity<Gasto> actualizarGasto(
+    public ResponseEntity<GastoResponseDTO> actualizarGasto(
             @PathVariable Long id,
             @RequestBody GastoDTO dto
     ) {
