@@ -46,9 +46,9 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
-                        //.requestMatchers("/api/gastos").permitAll()
+                        .requestMatchers("/api/gastos").authenticated()
                         .requestMatchers("/api/ingresos").authenticated()
-                        //.requestMatchers("/api/gastos/**").permitAll()
+                        .requestMatchers("/api/gastos/**").authenticated()
                         .requestMatchers("/api/ingresos/**").authenticated()
                         .requestMatchers("/api/auth/google-login").permitAll()
                         .requestMatchers("/api/auth/test-login").permitAll()

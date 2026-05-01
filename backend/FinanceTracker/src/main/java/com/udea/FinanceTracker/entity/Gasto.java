@@ -25,23 +25,20 @@ public class Gasto {
     @JoinColumn(name = "id_usuario", nullable = false)
     private Usuario usuario;
 
-    /** TODO: Agregar categoria
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_categoria", nullable = false)
     private Categoria categoria;
-    **/
+
 
     public Gasto() {}
 
-    //public Gasto(BigDecimal valor, LocalDate fecha, String descripcion, Usuario usuario, Categoria categoria) {
-    public Gasto(BigDecimal valor, LocalDate fecha, String descripcion, Usuario usuario) {
+    public Gasto(BigDecimal valor, LocalDate fecha, String descripcion, Usuario usuario, Categoria categoria) {
         this.valor = valor;
         this.fecha = fecha;
         this.descripcion = descripcion;
         this.usuario = usuario;
-        /** TODO: AGREGAR CATEGORIA
-         * this.categoria = categoria;
-         * **/
+        this.categoria = categoria;
+
 
     }
 
@@ -60,8 +57,6 @@ public class Gasto {
     public Usuario getUsuario() { return usuario; }
     public void setUsuario(Usuario usuario) { this.usuario = usuario; }
 
-    /** TODO: Agregar categoria
     public Categoria getCategoria() { return categoria; }
     public void setCategoria(Categoria categoria) { this.categoria = categoria; }
-     */
 }
