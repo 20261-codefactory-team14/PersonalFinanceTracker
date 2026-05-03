@@ -9,9 +9,11 @@ import com.udea.FinanceTracker.mapper.UsuarioMapper;
 import com.udea.FinanceTracker.repository.UsuarioRepository;
 import com.udea.FinanceTracker.util.GoogleTokenVerifier;
 import com.udea.FinanceTracker.util.JwtUtil;
+import com.udea.FinanceTracker.util.JwtBlacklist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -36,6 +38,9 @@ public class UsuarioService {
 
     @Autowired
     private UsuarioMapper usuarioMapper;
+
+    @Autowired
+    private JwtBlacklist jwtBlacklist;
 
     /**
      * Authenticate user with Google OAuth2 token
@@ -97,8 +102,8 @@ public class UsuarioService {
 
         // Generate tokens
         logger.info("Generating JWT tokens");
-        String accessToken = jwtUtil.generateToken(usuario.getEmail());
-        String refreshToken = jwtUtil.generateRefreshToken(usuario.getEmail());
+        String accessToken = jwtUtil.generateToken(usuario.getEmail(), usuario.getId());
+        String refreshToken = jwtUtil.generateRefreshToken(usuario.getEmail(), usuario.getId());
 
         UsuarioDTO usuarioDTO = usuarioMapper.toDTO(usuario);
 
@@ -215,8 +220,8 @@ public class UsuarioService {
         }
 
         // Generate tokens
-        String accessToken = jwtUtil.generateToken(usuario.getEmail());
-        String refreshToken = jwtUtil.generateRefreshToken(usuario.getEmail());
+        String accessToken = jwtUtil.generateToken(usuario.getEmail(), usuario.getId());
+        String refreshToken = jwtUtil.generateRefreshToken(usuario.getEmail(), usuario.getId());
 
         UsuarioDTO usuarioDTO = usuarioMapper.toDTO(usuario);
 
@@ -232,5 +237,125 @@ public class UsuarioService {
                 .message(message)
                 .build();
     }
-}
 
+    /**
+     * Logout user by blacklisting the access token and optionally the refresh token
+     * Since this application uses stateless JWT, logout is handled by token invalidation.
+     *
+     * @param accessToken access token from Authorization header
+     * @param refreshToken optional refresh token to invalidate as well
+     */
+    public void logout(String accessToken, String refreshToken) {
+        if (accessToken != null && !accessToken.trim().isEmpty()) {
+            jwtBlacklist.blacklistToken(accessToken);
+            logger.info("Access token blacklisted successfully");
+        }
+
+        if (refreshToken != null && !refreshToken.trim().isEmpty()) {
+            jwtBlacklist.blacklistToken(refreshToken);
+            logger.info("Refresh token blacklisted successfully");
+        }
+    }
+
+
+    /**
+     * Delete user account permanently
+     * Validates JWT token, extracts userId from token, and blacklists the token
+     * All related data (gasto, presupuesto, etc) will be deleted via CASCADE constraints
+     *
+     * @param token The JWT token from the Authorization header
+     * @return true if deletion was successful
+     * @throws IllegalArgumentException if user not found, token invalid, or validation fails
+     * @throws IllegalAccessException if the token is already deleted/invalid
+     */
+    public boolean deleteUser(String token) throws Exception {
+        if (token == null || token.trim().isEmpty()) {
+            throw new IllegalArgumentException("Token de autenticación requerido");
+        }
+
+        try {
+            // Validate token format and signature
+            if (!jwtUtil.validateToken(token)) {
+                throw new IllegalArgumentException("Token JWT inválido o expirado");
+            }
+
+            Long userId = null;
+            String authenticatedEmail = null;
+
+            try {
+                // Extract userId from token
+                userId = jwtUtil.extractUserId(token);
+                if (userId == null) {
+                    throw new IllegalArgumentException("Token no contiene información de usuario válida");
+                }
+
+                // Extract email from token
+                authenticatedEmail = jwtUtil.extractEmail(token);
+                if (authenticatedEmail == null || authenticatedEmail.trim().isEmpty()) {
+                    throw new IllegalArgumentException("Token no contiene información de email");
+                }
+
+            } catch (io.jsonwebtoken.JwtException e) {
+                logger.error("JWT parsing error: {}", e.getMessage());
+                throw new IllegalArgumentException("Token JWT malformado o corrupto");
+            } catch (Exception e) {
+                logger.error("Error extracting claims from token: {}", e.getMessage());
+                throw new IllegalArgumentException("No se pudo procesar el token JWT: " + e.getMessage());
+            }
+
+            // Find the user to delete
+            Optional<Usuario> usuarioOpt = usuarioRepository.findById(userId);
+
+            if (!usuarioOpt.isPresent()) {
+                throw new IllegalArgumentException("Usuario no encontrado. Es posible que la cuenta ya haya sido eliminada");
+            }
+
+            Usuario usuario = usuarioOpt.get();
+
+            // Validate that the token belongs to the user being deleted
+            if (!usuario.getEmail().equals(authenticatedEmail)) {
+                logger.warn("Token mismatch: Token email {} does not match user email {}",
+                           authenticatedEmail, usuario.getEmail());
+                throw new IllegalAccessException("El token no corresponde a este usuario");
+            }
+
+            logger.info("Starting account deletion for user: {}", usuario.getEmail());
+
+            try {
+                // Delete the user (this will cascade delete all related data)
+                usuarioRepository.deleteById(userId);
+
+                logger.info("User deleted successfully: {}", usuario.getEmail());
+
+                // Blacklist the token to prevent further API calls
+                jwtBlacklist.blacklistToken(token);
+                logger.info("Token blacklisted for user: {}", usuario.getEmail());
+
+                return true;
+
+            } catch (Exception e) {
+                logger.error("Error during account deletion for user {}: {}", usuario.getEmail(), e.getMessage());
+                throw new Exception("Error al eliminar la cuenta: " + e.getMessage(), e);
+            }
+
+        } catch (IllegalArgumentException | IllegalAccessException e) {
+            throw e;
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            logger.warn("Expired JWT token used");
+            throw new IllegalArgumentException("Token JWT expirado");
+        } catch (io.jsonwebtoken.MalformedJwtException e) {
+            logger.warn("Malformed JWT token: {}", e.getMessage());
+            throw new IllegalArgumentException("Token JWT malformado");
+        } catch (io.jsonwebtoken.SignatureException e) {
+            logger.warn("Invalid JWT signature");
+            throw new IllegalArgumentException("Token JWT inválido (firma incorrecta)");
+        } catch (io.jsonwebtoken.JwtException e) {
+            logger.warn("JWT exception: {}", e.getMessage());
+            throw new IllegalArgumentException("Token JWT inválido: " + e.getMessage());
+        } catch (Exception e) {
+            logger.error("Unexpected error during token processing: {}", e.getMessage());
+            throw new Exception("Error al procesar la solicitud: " + e.getMessage(), e);
+        }
+    }
+
+}
