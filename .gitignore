@@ -1,3 +1,5 @@
+
+
 # Compiled class file
 *.class
 
@@ -34,3 +36,12 @@ target/
 *.properties  # si tiene credenciales
 
 .env
+**/application-local.properties
+
+
+# Visual Studio Code configuation
+.vs/
+*.sqlite
+ProjectSettings.json
+VSWorkspaceState.json
+**/.vs/
