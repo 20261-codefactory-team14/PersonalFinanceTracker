@@ -9,6 +9,7 @@ import java.util.Date;
 
 @Entity
 @Table(name = "tbl_usuario")
+
 public class Usuario {
 
     @Id

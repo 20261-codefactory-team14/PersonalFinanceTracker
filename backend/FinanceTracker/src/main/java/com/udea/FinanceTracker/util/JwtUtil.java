@@ -25,27 +25,48 @@ public class JwtUtil {
      * Generate JWT token
      */
     public String generateToken(String email) {
-        return createToken(email, jwtExpiration);
+        return createToken(email, null, jwtExpiration);
+    }
+
+    /**
+     * Generate JWT token with userId claim
+     */
+    public String generateToken(String email, Long userId) {
+        return createToken(email, userId, jwtExpiration);
     }
 
     /**
      * Generate refresh token
      */
     public String generateRefreshToken(String email) {
-        return createToken(email, refreshTokenExpiration);
+        return createToken(email, null, refreshTokenExpiration);
+    }
+
+    /**
+     * Generate refresh token with userId claim
+     */
+    public String generateRefreshToken(String email, Long userId) {
+        return createToken(email, userId, refreshTokenExpiration);
     }
 
     /**
      * Create JWT token with custom expiration
      */
-    private String createToken(String email, Long expiration) {
+    private String createToken(String email, Long userId, Long expiration) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(email)
                 .issuedAt(now)
-                .expiration(expiryDate)
+                .expiration(expiryDate);
+
+        // Add userId claim if provided
+        if (userId != null) {
+            builder.claim("userId", userId);
+        }
+
+        return builder
                 .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()))
                 .compact();
     }
@@ -55,6 +76,13 @@ public class JwtUtil {
      */
     public String extractEmail(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    /**
+     * Extract userId from token
+     */
+    public Long extractUserId(String token) {
+        return extractClaim(token, claims -> claims.get("userId", Long.class));
     }
 
     /**
