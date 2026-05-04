@@ -21,9 +21,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -67,9 +65,10 @@ public class UsuarioServiceTest {
 
         Usuario savedUsuario = new Usuario("Test User", TEST_EMAIL, GOOGLE_ID);
         savedUsuario.setId(1L);
+
         given(usuarioRepository.save(any(Usuario.class))).willReturn(savedUsuario);
-        given(jwtUtil.generateToken(TEST_EMAIL)).willReturn(ACCESS_TOKEN);
-        given(jwtUtil.generateRefreshToken(TEST_EMAIL)).willReturn(REFRESH_TOKEN);
+        given(jwtUtil.generateToken(eq(TEST_EMAIL), nullable(Long.class))).willReturn(ACCESS_TOKEN);
+        given(jwtUtil.generateRefreshToken(eq(TEST_EMAIL), nullable(Long.class))).willReturn(REFRESH_TOKEN);
 
         UsuarioDTO dto = UsuarioDTO.builder()
                 .id(1L)
@@ -78,7 +77,8 @@ public class UsuarioServiceTest {
                 .googleId(GOOGLE_ID)
                 .profileCompleted(false)
                 .build();
-        given(usuarioMapper.toDTO(savedUsuario)).willReturn(dto);
+
+        given(usuarioMapper.toDTO(any(Usuario.class))).willReturn(dto);
 
         AuthenticationResponse response = usuarioService.authenticateWithGoogle(request);
 
@@ -87,6 +87,7 @@ public class UsuarioServiceTest {
         assertThat(response.getAccessToken()).isEqualTo(ACCESS_TOKEN);
         assertThat(response.getRefreshToken()).isEqualTo(REFRESH_TOKEN);
         assertThat(response.getUsuario()).isEqualTo(dto);
+
         verify(usuarioRepository).save(any(Usuario.class));
     }
 
@@ -105,8 +106,8 @@ public class UsuarioServiceTest {
 
         given(googleTokenVerifier.verifyToken("id-token")).willReturn(googleUserInfo);
         given(usuarioRepository.findByGoogleId(GOOGLE_ID)).willReturn(Optional.of(existingUser));
-        given(jwtUtil.generateToken(TEST_EMAIL)).willReturn(ACCESS_TOKEN);
-        given(jwtUtil.generateRefreshToken(TEST_EMAIL)).willReturn(REFRESH_TOKEN);
+        given(jwtUtil.generateToken(eq(TEST_EMAIL), nullable(Long.class))).willReturn(ACCESS_TOKEN);
+        given(jwtUtil.generateRefreshToken(eq(TEST_EMAIL), nullable(Long.class))).willReturn(REFRESH_TOKEN);
 
         UsuarioDTO dto = UsuarioDTO.builder()
                 .id(2L)
@@ -115,12 +116,14 @@ public class UsuarioServiceTest {
                 .googleId(GOOGLE_ID)
                 .profileCompleted(false)
                 .build();
+
         given(usuarioMapper.toDTO(existingUser)).willReturn(dto);
 
         AuthenticationResponse response = usuarioService.authenticateWithGoogle(request);
 
         assertThat(response.getMessage()).isEqualTo("Login successful");
         assertThat(response.getUsuario()).isEqualTo(dto);
+
         verify(usuarioRepository, never()).findByEmail(anyString());
     }
 
@@ -141,8 +144,8 @@ public class UsuarioServiceTest {
         given(usuarioRepository.findByGoogleId(GOOGLE_ID)).willReturn(Optional.empty());
         given(usuarioRepository.findByEmail(TEST_EMAIL)).willReturn(Optional.of(existingUser));
         given(usuarioRepository.save(any(Usuario.class))).willAnswer(invocation -> invocation.getArgument(0));
-        given(jwtUtil.generateToken(TEST_EMAIL)).willReturn(ACCESS_TOKEN);
-        given(jwtUtil.generateRefreshToken(TEST_EMAIL)).willReturn(REFRESH_TOKEN);
+        given(jwtUtil.generateToken(eq(TEST_EMAIL), nullable(Long.class))).willReturn(ACCESS_TOKEN);
+        given(jwtUtil.generateRefreshToken(eq(TEST_EMAIL), nullable(Long.class))).willReturn(REFRESH_TOKEN);
 
         UsuarioDTO dto = UsuarioDTO.builder()
                 .id(3L)
@@ -151,12 +154,14 @@ public class UsuarioServiceTest {
                 .googleId(GOOGLE_ID)
                 .profileCompleted(false)
                 .build();
+
         given(usuarioMapper.toDTO(existingUser)).willReturn(dto);
 
         AuthenticationResponse response = usuarioService.authenticateWithGoogle(request);
 
         assertThat(response.getMessage()).isEqualTo("Login successful");
         assertThat(existingUser.getGoogleId()).isEqualTo(GOOGLE_ID);
+
         verify(usuarioRepository).save(existingUser);
     }
 
@@ -164,7 +169,12 @@ public class UsuarioServiceTest {
     void getUserByEmail_ReturnsDtoWhenFound() {
         Usuario usuario = new Usuario("Test User", TEST_EMAIL, GOOGLE_ID);
         usuario.setId(4L);
-        UsuarioDTO dto = UsuarioDTO.builder().id(4L).email(TEST_EMAIL).nombre("Test User").build();
+
+        UsuarioDTO dto = UsuarioDTO.builder()
+                .id(4L)
+                .email(TEST_EMAIL)
+                .nombre("Test User")
+                .build();
 
         given(usuarioRepository.findByEmail(TEST_EMAIL)).willReturn(Optional.of(usuario));
         given(usuarioMapper.toDTO(usuario)).willReturn(dto);
@@ -178,7 +188,12 @@ public class UsuarioServiceTest {
     void getUserById_ReturnsDtoWhenFound() {
         Usuario usuario = new Usuario("Test User", TEST_EMAIL, GOOGLE_ID);
         usuario.setId(5L);
-        UsuarioDTO dto = UsuarioDTO.builder().id(5L).email(TEST_EMAIL).nombre("Test User").build();
+
+        UsuarioDTO dto = UsuarioDTO.builder()
+                .id(5L)
+                .email(TEST_EMAIL)
+                .nombre("Test User")
+                .build();
 
         given(usuarioRepository.findById(5L)).willReturn(Optional.of(usuario));
         given(usuarioMapper.toDTO(usuario)).willReturn(dto);
@@ -191,9 +206,13 @@ public class UsuarioServiceTest {
     @Test
     void updateUserProfile_ThrowsExceptionWhenUserMissing() {
         UpdatePerfilRequest request = new UpdatePerfilRequest();
+
         given(usuarioRepository.findById(anyLong())).willReturn(Optional.empty());
 
-        Exception exception = assertThrows(Exception.class, () -> usuarioService.updateUserProfile(99L, request));
+        Exception exception = assertThrows(
+                Exception.class,
+                () -> usuarioService.updateUserProfile(99L, request)
+        );
 
         assertThat(exception.getMessage()).isEqualTo("Usuario no encontrado");
     }
@@ -224,6 +243,7 @@ public class UsuarioServiceTest {
                 .idOcupacion(3L)
                 .profileCompleted(true)
                 .build();
+
         given(usuarioMapper.toDTO(any(Usuario.class))).willReturn(dto);
 
         UsuarioDTO result = usuarioService.updateUserProfile(6L, request);
@@ -234,6 +254,7 @@ public class UsuarioServiceTest {
         assertThat(result.getSalario()).isEqualTo(1500L);
         assertThat(result.getIdOcupacion()).isEqualTo(3L);
         assertThat(result.getProfileCompleted()).isTrue();
+
         verify(usuarioRepository).save(usuario);
     }
 
@@ -241,7 +262,10 @@ public class UsuarioServiceTest {
     void refreshAccessToken_ThrowsExceptionWhenRefreshTokenInvalid() {
         given(jwtUtil.validateToken(anyString())).willReturn(false);
 
-        Exception exception = assertThrows(Exception.class, () -> usuarioService.refreshAccessToken("invalid-token"));
+        Exception exception = assertThrows(
+                Exception.class,
+                () -> usuarioService.refreshAccessToken("invalid-token")
+        );
 
         assertThat(exception.getMessage()).isEqualTo("Refresh token is invalid or expired");
     }
@@ -263,9 +287,10 @@ public class UsuarioServiceTest {
 
         Usuario savedUsuario = new Usuario("Test User", TEST_EMAIL, null);
         savedUsuario.setId(7L);
+
         given(usuarioRepository.save(any(Usuario.class))).willReturn(savedUsuario);
-        given(jwtUtil.generateToken(TEST_EMAIL)).willReturn(ACCESS_TOKEN);
-        given(jwtUtil.generateRefreshToken(TEST_EMAIL)).willReturn(REFRESH_TOKEN);
+        given(jwtUtil.generateToken(eq(TEST_EMAIL), nullable(Long.class))).willReturn(ACCESS_TOKEN);
+        given(jwtUtil.generateRefreshToken(eq(TEST_EMAIL), nullable(Long.class))).willReturn(REFRESH_TOKEN);
 
         UsuarioDTO dto = UsuarioDTO.builder()
                 .id(7L)
@@ -274,7 +299,8 @@ public class UsuarioServiceTest {
                 .googleId(null)
                 .profileCompleted(false)
                 .build();
-        given(usuarioMapper.toDTO(savedUsuario)).willReturn(dto);
+
+        given(usuarioMapper.toDTO(any(Usuario.class))).willReturn(dto);
 
         AuthenticationResponse response = usuarioService.createTestUser(TEST_EMAIL, "Test User");
 
@@ -286,9 +312,10 @@ public class UsuarioServiceTest {
     void createTestUser_ReturnsExistingUserWhenPresent() throws Exception {
         Usuario existingUsuario = new Usuario("Existing User", TEST_EMAIL, null);
         existingUsuario.setId(8L);
+
         given(usuarioRepository.findByEmail(TEST_EMAIL)).willReturn(Optional.of(existingUsuario));
-        given(jwtUtil.generateToken(TEST_EMAIL)).willReturn(ACCESS_TOKEN);
-        given(jwtUtil.generateRefreshToken(TEST_EMAIL)).willReturn(REFRESH_TOKEN);
+        given(jwtUtil.generateToken(eq(TEST_EMAIL), nullable(Long.class))).willReturn(ACCESS_TOKEN);
+        given(jwtUtil.generateRefreshToken(eq(TEST_EMAIL), nullable(Long.class))).willReturn(REFRESH_TOKEN);
 
         UsuarioDTO dto = UsuarioDTO.builder()
                 .id(8L)
@@ -297,12 +324,14 @@ public class UsuarioServiceTest {
                 .googleId(null)
                 .profileCompleted(false)
                 .build();
+
         given(usuarioMapper.toDTO(existingUsuario)).willReturn(dto);
 
         AuthenticationResponse response = usuarioService.createTestUser(TEST_EMAIL, "Existing User");
 
         assertThat(response.getMessage()).isEqualTo("Test login successful");
         assertThat(response.getUsuario()).isEqualTo(dto);
+
         verify(usuarioRepository, never()).save(any());
     }
 }
