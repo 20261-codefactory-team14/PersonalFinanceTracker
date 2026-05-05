@@ -53,7 +53,6 @@ class GoogleTokenVerifierTest {
         // Configurar datos de prueba: token válido (simulado)
         // Nota: Esta prueba requeriría un token real o un mock más profundo.
         // Para pruebas unitarias puras, se debe mockear el verifier de Google.
-        String validIdToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6InRlc3QiLCJ0eXAiOiJKV1QifQ.valid-token";
 
         // ==================== ACT ====================
         // Ejecutar el método a probar
