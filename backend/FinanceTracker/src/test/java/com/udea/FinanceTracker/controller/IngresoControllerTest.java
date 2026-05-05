@@ -211,7 +211,8 @@ class IngresoControllerTest {
 
         // ==================== ACT & ASSERT ====================
         mockMvc.perform(get("/api/ingresos/{id}", invalidId))
-                .andExpect(status().isOk()); // Controller no maneja excepción explícitamente
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Ingreso no encontrado"));  // validar mensaje
     }
 
     /**

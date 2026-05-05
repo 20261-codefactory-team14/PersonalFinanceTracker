@@ -509,6 +509,16 @@ public class AuthenticationController {
 
     /**
      * Logout user
+     *
+     * ==================== CORRECCIÓN DE ERRORES 1 y 2 ====================
+     * Error 1: logout con token válido retornaba 401, ahora retorna 200 OK
+     * Error 2: logout con token inválido retorna 401 Unauthorized
+     * Además se valida:
+     * - Header Authorization presente
+     * - Formato Bearer correcto
+     * - Token no vacío
+     * - Token válido antes de procesar
+     * ==================== FIN CORRECCIÓN ====================
      */
     @Operation(
             summary = "Cerrar sesión",
@@ -531,25 +541,59 @@ public class AuthenticationController {
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Token inválido o faltante",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(value = """
-                            {
-                              "error": "Authorization header is missing or invalid"
-                            }
-                            """)
-                    )
+                    description = "Token faltante o formato inválido",
+                    content = @Content(mediaType = "application/json")
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Token inválido o expirado",
+                    content = @Content(mediaType = "application/json")
             )
     })
     @PostMapping("/logout")
     public ResponseEntity<?> logout(
-            @RequestHeader("Authorization") String authHeader,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestBody(required = false) Map<String, String> body) {
-        try {
-            String accessToken = extractToken(authHeader);
-            String refreshToken = body != null ? body.get("refreshToken") : null;
 
+        // Validar que el header Authorization esté presente
+        if (authHeader == null || authHeader.trim().isEmpty()) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Authorization header is missing");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+
+        // Validar formato Bearer
+        if (!authHeader.startsWith("Bearer ")) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Invalid authorization header format");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+
+        // Extraer token
+        String accessToken;
+        try {
+            accessToken = authHeader.substring(7);
+            if (accessToken.trim().isEmpty()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Token is empty");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to extract token");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+
+        // Validar token (si es inválido, retornar 401)
+        if (!usuarioService.validateToken(accessToken)) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Token inválido o expirado");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        }
+
+        // Procesar logout
+        try {
+            String refreshToken = body != null ? body.get("refreshToken") : null;
             usuarioService.logout(accessToken, refreshToken);
 
             Map<String, Object> response = new HashMap<>();
@@ -558,7 +602,7 @@ public class AuthenticationController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            Map<String, Object> error = new HashMap<>();
+            Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
         }

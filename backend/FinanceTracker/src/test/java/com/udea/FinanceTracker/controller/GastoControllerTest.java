@@ -19,9 +19,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
@@ -60,7 +59,10 @@ class GastoControllerTest {
      * Tipo de prueba: Funcional positivo (Camino Feliz)
      * Patrón AAA: Arrange, Act, Assert
      *
-     * Corresponde al CP-005-A: Creación exitosa de gasto
+     * Corresponde al CP-005-A: Creación exitosa de gasto (Camino feliz)
+     *
+     * Escenario: Usuario autenticado, datos válidos, usuario y categoría existen
+     * Resultado esperado: Código 200 OK, gasto creado exitosamente
      */
     @Test
     void crearGasto_WithValidData_ReturnsOk() throws Exception {
@@ -90,19 +92,29 @@ class GastoControllerTest {
     }
 
     /**
-     * Prueba de excepción: Creación de gasto con usuario inexistente.
+     * Prueba de excepción: Creación de gasto con usuario inexistente en BD.
      *
      * Tipo de prueba: Validación negativa (Excepción)
      * Patrón AAA: Arrange, Act, Assert
+     *
+     * Corresponde al CP-005-A: Creación exitosa de gasto (Paso de excepción #2)
+     *
+     * Escenario: Usuario autenticado (token válido), pero el idUsuario no existe en BD
+     * Resultado esperado: Código 404 Not Found
+     *
+     * ==================== CORRECCIÓN ====================
+     * El código ahora retorna 404 Not Found cuando el usuario no existe.
+     * La prueba se actualiza para esperar 404 en lugar de 200 OK.
+     * ==================== FIN CORRECCIÓN ====================
      */
     @Test
-    void crearGasto_WithNonExistentUser_ReturnsError() throws Exception {
+    void crearGasto_WithNonExistentUser_ReturnsNotFound() throws Exception {
         // ==================== ARRANGE ====================
         GastoDTO request = new GastoDTO();
         request.setValor(new BigDecimal("25.50"));
         request.setFecha(LocalDate.now());
         request.setDescripcion("Almuerzo");
-        request.setIdUsuario(999L);
+        request.setIdUsuario(999L);  // Usuario que NO existe en BD
         request.setIdCategoria(1L);
 
         given(gastoService.crearGasto(any(GastoDTO.class)))
@@ -112,6 +124,7 @@ class GastoControllerTest {
         mockMvc.perform(post("/api/gastos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk()); // Controller no maneja la excepción explícitamente
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Usuario no encontrado"));
     }
 }

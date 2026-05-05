@@ -13,6 +13,12 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.*;
 
+/**
+ * Componente para verificar tokens de Google ID y extraer información del usuario.
+ *
+ * @author Equipo Quality Assurance
+ * @version 1.1
+ */
 @Component
 public class GoogleTokenVerifier {
 
@@ -24,22 +30,43 @@ public class GoogleTokenVerifier {
     private GoogleIdTokenVerifier verifier;
 
     /**
-     * Verify Google ID Token and extract user information
+     * Verifica un token de Google ID y extrae la información del usuario.
+     *
+     * ==================== CORRECCIÓN DE BUG-01 Google token sin email no validado  ====================
+     * PROBLEMA: El método lanzaba RuntimeException cuando fallaba la verificación
+     * del token o cuando faltaban campos obligatorios. Esto causaba que el test
+     * verifyToken_WithTokenMissingEmail_ThrowsException fallara porque esperaba
+     * una excepción de tipo GeneralSecurityException.
+     *
+     * SOLUCIÓN:
+     * 1. Se reemplazaron todos los throw new RuntimeException() por
+     *    throw new GeneralSecurityException() para cumplir con la firma del método
+     *    y las expectativas del test.
+     * 2. Se agregó un bloque catch (Exception e) al final para capturar cualquier
+     *    excepción inesperada y convertirla a GeneralSecurityException.
+     * 3. Se agregó validación de campos obligatorios (email y name) que también
+     *    lanza GeneralSecurityException.
+     *
+     * RESULTADO: El test ahora recibe el tipo de excepción esperado y pasa correctamente.
+     * ==================== FIN CORRECCIÓN ====================
+     *
+     * @param idToken Token de Google ID a verificar
+     * @return Mapa con la información del usuario (googleId, email, name, picture)
+     * @throws GeneralSecurityException Si ocurre un error de seguridad durante la verificación
+     * @throws IOException Si ocurre un error de entrada/salida durante la verificación
      */
     public Map<String, String> verifyToken(String idToken) throws GeneralSecurityException, IOException {
+        // Validar configuración del Client ID
         if (googleClientId == null || googleClientId.isEmpty()) {
             logger.error("Google Client ID is not configured");
-            throw new RuntimeException("Google Client ID is not configured");
+            throw new GeneralSecurityException("Google Client ID is not configured");
         }
 
         logger.info("Attempting to verify Google ID token with client ID: {}", googleClientId);
 
         try {
-            // Initialize verifier if not already done
+            // Inicializar el verificador si no existe
             if (verifier == null) {
-                logger.info("client id being used: {}", googleClientId);
-                logger.info("Received token: {}", idToken);
-                logger.info("Token parts: {}", idToken.split("\\.").length);
                 logger.info("Initializing GoogleIdTokenVerifier");
                 verifier = new GoogleIdTokenVerifier.Builder(
                         new NetHttpTransport(),
@@ -52,55 +79,18 @@ public class GoogleTokenVerifier {
                         .build();
             }
 
-            GoogleIdToken parsedToken = GoogleIdToken.parse(
-                    GsonFactory.getDefaultInstance(), idToken
-            );
-
-
-            GoogleIdToken.Payload p = parsedToken.getPayload();
-
-// Check each condition manually
-            long currentTime = System.currentTimeMillis() / 1000;
-
-            System.out.println("=== MANUAL CLAIM CHECK ===");
-            System.out.println("iss: " + p.getIssuer());
-            System.out.println("iss valid: " + (
-                    p.getIssuer().equals("accounts.google.com") ||
-                            p.getIssuer().equals("https://accounts.google.com")
-            ));
-
-            System.out.println("aud: " + p.getAudience());
-            System.out.println("aud valid: " + p.getAudience().equals(googleClientId));
-
-            System.out.println("exp: " + p.getExpirationTimeSeconds());
-            System.out.println("current time: " + currentTime);
-            System.out.println("exp valid (not expired): " + (p.getExpirationTimeSeconds() > currentTime));
-
-            System.out.println("iat: " + p.getIssuedAtTimeSeconds());
-// Google requires iat to not be too far in the future either
-            System.out.println("iat valid (not in future): " + (p.getIssuedAtTimeSeconds() <= currentTime + 300));
-
-            boolean clockValid = verifier.verify(parsedToken);
-            System.out.println(">>> Payload Valid(audd/iss/exp): " + clockValid); // false = failed
-
-            GoogleIdToken verified = verifier.verify(idToken);
-            System.out.println(">>> Verified token: " + verified); // null = failed
-
-            if (verified == null) throw new RuntimeException("Verification returned null");
-
-            // Verify the token
+            // Verificar el token
             logger.info("Verifying token...");
             GoogleIdToken idTokenObj = verifier.verify(idToken);
-            logger.info("IdTokenOBJ: {}", idTokenObj);
 
             if (idTokenObj == null) {
-                logger.error("Token verification failed - idTokenObj is null. Token may be invalid or audience doesn't match.");
-                throw new RuntimeException("Invalid ID token - verification failed");
+                logger.error("Token verification failed - Token may be invalid or audience doesn't match.");
+                throw new GeneralSecurityException("Failed to extract user info from Google token");
             }
 
             logger.info("Token verified successfully");
 
-            // Extract user information from verified token
+            // Extraer información del usuario del token verificado
             GoogleIdToken.Payload payload = idTokenObj.getPayload();
 
             String googleId = payload.getSubject();
@@ -108,26 +98,40 @@ public class GoogleTokenVerifier {
             String name = (String) payload.get("name");
             String picture = (String) payload.get("picture");
 
+            // Validación de campos obligatorios según HU 1.1
+            // El token debe contener email y name para ser válido
+            if (email == null || email.trim().isEmpty()) {
+                logger.error("Google token missing required field: email");
+                throw new GeneralSecurityException("Email es obligatorio en el token de Google");
+            }
+            if (name == null || name.trim().isEmpty()) {
+                logger.error("Google token missing required field: name");
+                throw new GeneralSecurityException("Name es obligatorio en el token de Google");
+            }
+
             logger.info("Successfully extracted user info - Email: {}, GoogleId: {}", email, googleId);
 
+            // Construir mapa con la información del usuario
             Map<String, String> userInfo = new HashMap<>();
             userInfo.put("googleId", googleId);
             userInfo.put("email", email);
-            userInfo.put("name", name != null ? name : "");
+            userInfo.put("name", name);
             userInfo.put("picture", picture != null ? picture : "");
 
             return userInfo;
-        } catch (IOException e) {
-            logger.error("IOException during token verification: {}", e.getMessage(), e);
-            throw new IOException("Failed to verify Google token: " + e.getMessage(), e);
+
         } catch (GeneralSecurityException e) {
-            logger.error("GeneralSecurityException during token verification: {}", e.getMessage(), e);
-            throw new GeneralSecurityException("Failed to verify Google token signature: " + e.getMessage(), e);
+            // Relanzar excepciones de seguridad
+            logger.error("Security exception during token verification: {}", e.getMessage());
+            throw e;
+        } catch (IOException e) {
+            // Convertir IOException a GeneralSecurityException
+            logger.error("IO exception during token verification: {}", e.getMessage());
+            throw new GeneralSecurityException("Failed to verify Google token: " + e.getMessage(), e);
         } catch (Exception e) {
+            // Capturar cualquier otra excepción y convertirla a GeneralSecurityException
             logger.error("Unexpected exception during token verification: {}", e.getMessage(), e);
-            throw new IOException("Failed to verify Google token: " + e.getMessage(), e);
+            throw new GeneralSecurityException("Unexpected error during token verification: " + e.getMessage(), e);
         }
     }
 }
-
-

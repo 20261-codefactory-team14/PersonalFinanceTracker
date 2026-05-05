@@ -13,7 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import static org.mockito.Mockito.never;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -24,6 +23,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class GastoServiceTest {
@@ -211,23 +212,22 @@ class GastoServiceTest {
     void crearGasto_WithNullMonto_ThrowsException() {
         // ==================== ARRANGE ====================
         GastoDTO dto = new GastoDTO();
-        dto.setValor(null); // Monto nulo (campo obligatorio)
+        dto.setValor(null);  // ✅ Monto nulo (campo obligatorio)
         dto.setFecha(LocalDate.now());
         dto.setDescripcion("Almuerzo");
         dto.setIdUsuario(USER_ID);
         dto.setIdCategoria(CATEGORIA_ID);
 
-        Usuario usuario = new Usuario();
-        usuario.setId(USER_ID);
-
-        given(usuarioRepository.findById(USER_ID)).willReturn(Optional.of(usuario));
-        given(categoriaRepository.findById(CATEGORIA_ID)).willReturn(Optional.of(new Categoria()));
-
         // ==================== ACT & ASSERT ====================
         assertThatThrownBy(() -> gastoService.crearGasto(dto))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("El valor no puede ser nulo");
+                .hasMessageContaining("El valor del gasto es obligatorio");
 
+        // Verificar que NO se intentó guardar el gasto
         verify(gastoRepository, never()).save(any(Gasto.class));
+
+        // Verificar que nunca se buscó el usuario ni la categoría
+        verify(usuarioRepository, never()).findById(anyLong());
+        verify(categoriaRepository, never()).findById(anyLong());
     }
 }
