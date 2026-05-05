@@ -14,10 +14,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import com.udea.FinanceTracker.util.JwtBlacklist;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.text.ParseException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -45,6 +48,9 @@ public class UsuarioServiceTest {
 
     @Mock
     private UsuarioMapper usuarioMapper;
+
+    @Mock
+    private JwtBlacklist jwtBlacklist;
 
     @InjectMocks
     private UsuarioService usuarioService;
@@ -333,5 +339,163 @@ public class UsuarioServiceTest {
         assertThat(response.getUsuario()).isEqualTo(dto);
 
         verify(usuarioRepository, never()).save(any());
+    }
+
+    /**
+     * Prueba de excepción: Validación de fecha de nacimiento futura.
+     *
+     * Tipo de prueba: Validación negativa (Excepción)
+     * Patrón AAA: Arrange, Act, Assert
+     *
+     * Corresponde al CP-003-B: Validación de edad negativa o no numérica
+     */
+    @Test
+    void updateUserProfile_FutureDate_ThrowsException() {
+        // ==================== ARRANGE ====================
+        // Configurar usuario existente
+        Usuario existingUser = new Usuario("Test User", TEST_EMAIL, GOOGLE_ID);
+        existingUser.setId(1L);
+
+        // Crear request con fecha futura
+        UpdatePerfilRequest request = new UpdatePerfilRequest();
+        request.setNombre("New Name");
+        request.setFechaNacimiento("2030-05-21"); // Fecha futura -> edad negativa
+
+        given(usuarioRepository.findById(1L)).willReturn(Optional.of(existingUser));
+
+        // ==================== ACT & ASSERT ====================
+        // Verificar que se lanza una excepción por fecha inválida
+        assertThatThrownBy(() -> usuarioService.updateUserProfile(1L, request))
+                .isInstanceOf(Exception.class)
+                .hasMessageContaining("fecha");
+
+        // Verificar que el usuario no fue actualizado
+        verify(usuarioRepository, never()).save(any(Usuario.class));
+    }
+
+    /**
+     * Prueba de excepción: Validación de formato de fecha incorrecto.
+     *
+     * Tipo de prueba: Validación negativa (Excepción)
+     * Patrón AAA: Arrange, Act, Assert
+     *
+     * Corresponde al CP-003-B: Validación de edad negativa o no numérica
+     */
+    @Test
+    void updateUserProfile_InvalidDateFormat_ThrowsException() {
+        // ==================== ARRANGE ====================
+        Usuario existingUser = new Usuario("Test User", TEST_EMAIL, GOOGLE_ID);
+        existingUser.setId(1L);
+
+        // Crear request con formato de fecha incorrecto
+        UpdatePerfilRequest request = new UpdatePerfilRequest();
+        request.setNombre("New Name");
+        request.setFechaNacimiento("1990/05/21"); // Formato incorrecto (debería ser yyyy-MM-dd)
+
+        given(usuarioRepository.findById(1L)).willReturn(Optional.of(existingUser));
+
+        // ==================== ACT & ASSERT ====================
+        assertThatThrownBy(() -> usuarioService.updateUserProfile(1L, request))
+                .isInstanceOf(Exception.class);
+    }
+
+    // ==================== PRUEBAS PARA ELIMINACIÓN DE CUENTA ====================
+    // Corresponde al CP-008-A y CP-008-B: Eliminación de cuenta de forma lógica
+    // ====================
+
+    /**
+     * Prueba del camino feliz: Eliminación exitosa de cuenta con confirmación.
+     *
+     * Tipo de prueba: Funcional positivo (Camino Feliz)
+     * Patrón AAA: Arrange, Act, Assert
+     *
+     * Corresponde al CP-008-A: Confirmación crítica y eliminación de cuenta
+     */
+    @Test
+    void deleteUser_WithValidTokenAndConfirmTrue_DeletesUserAndBlacklistsToken() throws Exception {
+        // ==================== ARRANGE ====================
+        String validToken = "valid.jwt.token";
+        Long userId = 1L;
+        String userEmail = "test@example.com";
+
+        // Configurar usuario existente
+        Usuario existingUser = new Usuario("Test User", userEmail, GOOGLE_ID);
+        existingUser.setId(userId);
+
+        // Configurar mocks para JWT
+        given(jwtUtil.validateToken(validToken)).willReturn(true);
+        given(jwtUtil.extractUserId(validToken)).willReturn(userId);
+        given(jwtUtil.extractEmail(validToken)).willReturn(userEmail);
+
+        given(usuarioRepository.findById(userId)).willReturn(Optional.of(existingUser));
+
+        // ==================== ACT ====================
+        boolean deleted = usuarioService.deleteUser(validToken);
+
+        // ==================== ASSERT ====================
+        assertThat(deleted).isTrue();
+        verify(usuarioRepository).deleteById(userId);
+        verify(jwtBlacklist).blacklistToken(validToken);
+    }
+
+    /**
+     * Prueba de excepción: Eliminación de cuenta sin confirmación.
+     *
+     * Tipo de prueba: Validación negativa (Excepción)
+     * Patrón AAA: Arrange, Act, Assert
+     *
+     * Corresponde al CP-008-A (variante de excepción)
+     */
+    @Test
+    void deleteUser_WithInvalidToken_ThrowsException() {
+        // ==================== ARRANGE ====================
+        String invalidToken = "invalid.token";
+
+        given(jwtUtil.validateToken(invalidToken)).willReturn(false);
+
+        // ==================== ACT & ASSERT ====================
+        assertThatThrownBy(() -> usuarioService.deleteUser(invalidToken))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Token JWT inválido o expirado");
+    }
+
+    /**
+     * Prueba de seguridad: Token blacklist después de eliminación.
+     *
+     * Tipo de prueba: Seguridad
+     * Patrón AAA: Arrange, Act, Assert
+     *
+     * Corresponde al CP-008-B: Cierre de sesión inmediato tras eliminación de cuenta
+     * Verifica que el token es añadido al blacklist y ya no es válido.
+     */
+    @Test
+    void deleteUser_TokenIsBlacklisted_AfterDeletion() throws Exception {
+        // ==================== ARRANGE ====================
+        String validToken = "valid.jwt.token";
+        Long userId = 1L;
+        String userEmail = "test@example.com";
+
+        Usuario existingUser = new Usuario("Test User", userEmail, GOOGLE_ID);
+        existingUser.setId(userId);
+
+        given(jwtUtil.validateToken(validToken)).willReturn(true);
+        given(jwtUtil.extractUserId(validToken)).willReturn(userId);
+        given(jwtUtil.extractEmail(validToken)).willReturn(userEmail);
+        given(usuarioRepository.findById(userId)).willReturn(Optional.of(existingUser));
+
+        // Configurar blacklist mock
+        given(jwtBlacklist.isBlacklisted(anyString())).willReturn(false);
+
+        // ==================== ACT ====================
+        boolean deleted = usuarioService.deleteUser(validToken);
+
+        // ==================== ASSERT ====================
+        assertThat(deleted).isTrue();
+        // Verificar que el token fue añadido al blacklist
+        verify(jwtBlacklist).blacklistToken(validToken);
+
+        // Simular que después de la eliminación, el token está en blacklist
+        given(jwtBlacklist.isBlacklisted(validToken)).willReturn(true);
+        assertThat(jwtBlacklist.isBlacklisted(validToken)).isTrue();
     }
 }

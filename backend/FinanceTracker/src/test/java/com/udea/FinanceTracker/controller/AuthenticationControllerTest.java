@@ -14,6 +14,8 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -40,7 +42,10 @@ public class AuthenticationControllerTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         mockMvc = MockMvcBuilders.standaloneSetup(authenticationController).build();
+        // Configurar ObjectMapper para soportar LocalDate
         objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
     @Test
@@ -141,5 +146,74 @@ public class AuthenticationControllerTest {
                 .header("Authorization", "Bearer invalid_token"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("Token inválido o expirado"));
+    }
+
+    // ==================== PRUEBA PARA LOGOUT ====================
+    // Corresponde al CP-009-A: Cierre de sesión exitoso
+    // ====================
+
+    /**
+     * Prueba del camino feliz: Cierre de sesión exitoso.
+     *
+     * Tipo de prueba: Funcional positivo (Camino Feliz)
+     * Patrón AAA: Arrange, Act, Assert
+     *
+     * Corresponde al CP-009-A: Cierre de sesión exitoso
+     * Verifica que el sistema invalida el token y responde correctamente.
+     */
+    @Test
+    void logout_WithValidToken_ReturnsSuccess() throws Exception {
+        // ==================== ARRANGE ====================
+        String authHeader = "Bearer valid_token";
+
+        // No se necesita mock específico porque el servicio no tiene lógica pesada
+        // El logout se maneja en la capa de servicio (blacklist)
+
+        // ==================== ACT & ASSERT ====================
+        mockMvc.perform(post("/api/auth/logout")
+                        .header("Authorization", authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Sesión cerrada correctamente"));
+    }
+
+    /**
+     * Prueba de excepción: Logout sin token.
+     *
+     * Tipo de prueba: Validación negativa (Excepción)
+     * Patrón AAA: Arrange, Act, Assert
+     */
+    @Test
+    void logout_WithoutToken_ReturnsBadRequest() throws Exception {
+        // ==================== ARRANGE ====================
+        // Sin header Authorization
+
+        // ==================== ACT & ASSERT ====================
+        mockMvc.perform(post("/api/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").exists());
+    }
+
+    /**
+     * Prueba de excepción: Logout con token inválido.
+     *
+     * Tipo de prueba: Validación negativa (Excepción)
+     * Patrón AAA: Arrange, Act, Assert
+     */
+    @Test
+    void logout_WithInvalidToken_ReturnsBadRequest() throws Exception {
+        // ==================== ARRANGE ====================
+        String authHeader = "Bearer invalid_token";
+
+        // Simular que el servicio lanza excepción con token inválido
+        // Nota: UsuarioService.validateToken retorna false para token inválido
+
+        // ==================== ACT & ASSERT ====================
+        mockMvc.perform(post("/api/auth/logout")
+                        .header("Authorization", authHeader)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
     }
 }
