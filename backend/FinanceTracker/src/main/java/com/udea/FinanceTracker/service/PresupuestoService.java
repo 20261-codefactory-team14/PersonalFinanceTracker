@@ -88,4 +88,28 @@ public class PresupuestoService {
                 .toList();
     }
 
+    /**
+     * Actualiza el presupuesto activo del usuario.
+     * Solo permite modificar el valor.
+     */
+    public PresupuestoDTO actualizarPresupuesto(Long idUsuario, CrearPresupuestoRequest request) throws Exception {
+        LocalDate fechaLimite = LocalDate.now().minusMonths(1);
+
+        Optional<Presupuesto> presupuestoOpt = presupuestoRepository
+                .findPresupuestoActivoByUsuario(idUsuario, fechaLimite);
+
+        if (presupuestoOpt.isEmpty()) {
+            throw new Exception("El usuario no tiene un presupuesto activo para actualizar");
+        }
+
+        Presupuesto presupuesto = presupuestoOpt.get();
+
+        // Actualizar solo el valor
+        presupuesto.setValor(request.getValor());
+
+        presupuesto = presupuestoRepository.save(presupuesto);
+
+        return presupuestoMapper.toDTO(presupuesto);
+    }
+
 }
