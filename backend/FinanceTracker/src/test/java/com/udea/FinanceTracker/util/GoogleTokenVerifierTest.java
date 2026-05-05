@@ -45,7 +45,7 @@ class GoogleTokenVerifierTest {
      * Tipo de prueba: Funcional positivo
      * Patrón AAA: Arrange, Act, Assert
      *
-     * Corresponde al CP-001-A (ya cubierto) - Se incluye por completitud.
+     * Corresponde al CP-001-A  - Se incluye por completitud.
      */
     @Test
     void verifyToken_WithValidToken_ReturnsUserInfo() throws Exception {

@@ -21,6 +21,8 @@ import java.security.GeneralSecurityException;
 import java.text.SimpleDateFormat;
 import java.util.Map;
 import java.util.Optional;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 @Service
 public class UsuarioService {
@@ -154,6 +156,12 @@ public class UsuarioService {
 
     /**
      * Update user profile (complete registration)
+     *
+     * ==================== CORRECCIÓN DE ERROR 8 ====================
+     * Se agrega validación para rechazar fechas de nacimiento futuras
+     * También se valida el formato de fecha
+     * Esto cumple con el criterio de aceptación de HU 1.3
+     * ==================== FIN CORRECCIÓN ====================
      */
     public UsuarioDTO updateUserProfile(Long userId, UpdatePerfilRequest request) throws Exception {
         Optional<Usuario> usuarioOpt = usuarioRepository.findById(userId);
@@ -176,9 +184,22 @@ public class UsuarioService {
         if (request.getIdOcupacion() != null) {
             usuario.setIdOcupacion(request.getIdOcupacion());
         }
-        if (request.getFechaNacimiento() != null) {
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            usuario.setFechaNacimiento(dateFormat.parse(request.getFechaNacimiento()));
+
+        // Validar fecha de nacimiento (no puede ser futura)
+        if (request.getFechaNacimiento() != null && !request.getFechaNacimiento().isEmpty()) {
+            try {
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                dateFormat.setLenient(false);
+                Date fechaNacimiento = dateFormat.parse(request.getFechaNacimiento());
+
+                // Verificar que la fecha no sea futura
+                if (fechaNacimiento.after(new Date())) {
+                    throw new Exception("La fecha de nacimiento no puede ser futura");
+                }
+                usuario.setFechaNacimiento(fechaNacimiento);
+            } catch (java.text.ParseException e) {
+                throw new Exception("Formato de fecha inválido. Use yyyy-MM-dd");
+            }
         }
 
         usuario.setProfileCompleted(true);

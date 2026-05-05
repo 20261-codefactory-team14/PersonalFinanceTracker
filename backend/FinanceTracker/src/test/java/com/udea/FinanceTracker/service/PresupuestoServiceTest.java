@@ -88,17 +88,15 @@ class PresupuestoServiceTest {
     void crearPresupuesto_WithZeroMonto_ThrowsException() {
         // ==================== ARRANGE ====================
         CrearPresupuestoRequest request = new CrearPresupuestoRequest();
-        request.setValor(MONTO_CERO);
-
-        given(presupuestoRepository.existsPresupuestoActivoByUsuario(any(Long.class), any(LocalDate.class)))
-                .willReturn(false);
+        request.setValor(MONTO_CERO);  // Monto 0 (inválido)
 
         // ==================== ACT & ASSERT ====================
-        // La validación @DecimalMin(value = "0.0", inclusive = false) debe activarse
         assertThatThrownBy(() -> presupuestoService.crearPresupuesto(USER_ID, request))
                 .isInstanceOf(Exception.class)
-                .hasMessageContaining("mayor a cero");
+                .hasMessageContaining("El valor del presupuesto debe ser mayor a cero");
 
+        // Verificar que NO se intentó guardar ni buscar presupuesto activo
+        verify(presupuestoRepository, never()).existsPresupuestoActivoByUsuario(any(Long.class), any(LocalDate.class));
         verify(presupuestoRepository, never()).save(any(Presupuesto.class));
     }
 
@@ -114,16 +112,15 @@ class PresupuestoServiceTest {
     void crearPresupuesto_WithNegativeMonto_ThrowsException() {
         // ==================== ARRANGE ====================
         CrearPresupuestoRequest request = new CrearPresupuestoRequest();
-        request.setValor(MONTO_NEGATIVO);
-
-        given(presupuestoRepository.existsPresupuestoActivoByUsuario(any(Long.class), any(LocalDate.class)))
-                .willReturn(false);
+        request.setValor(MONTO_NEGATIVO);  // Monto negativo (inválido)
 
         // ==================== ACT & ASSERT ====================
         assertThatThrownBy(() -> presupuestoService.crearPresupuesto(USER_ID, request))
                 .isInstanceOf(Exception.class)
-                .hasMessageContaining("mayor a cero");
+                .hasMessageContaining("El valor del presupuesto debe ser mayor a cero");
 
+        // Verificar que NO se intentó guardar ni buscar presupuesto activo
+        verify(presupuestoRepository, never()).existsPresupuestoActivoByUsuario(any(Long.class), any(LocalDate.class));
         verify(presupuestoRepository, never()).save(any(Presupuesto.class));
     }
 }
