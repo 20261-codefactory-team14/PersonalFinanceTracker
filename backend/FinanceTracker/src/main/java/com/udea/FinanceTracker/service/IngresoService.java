@@ -55,6 +55,7 @@ public class IngresoService {
     }
 
     public IngresoResponseDTO actualizarIngreso(Long id, IngresoDTO dto) {
+
         Ingreso ingreso = ingresoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ingreso no encontrado"));
 
@@ -65,6 +66,7 @@ public class IngresoService {
         ingreso.setFecha(dto.getFecha());
         ingreso.setDescripcion(dto.getDescripcion());
         ingreso.setUsuario(usuario);
+        ingreso.setIdCategoria(dto.getIdCategoria());
 
         Ingreso ingresoActualizado = ingresoRepository.save(ingreso);
 
