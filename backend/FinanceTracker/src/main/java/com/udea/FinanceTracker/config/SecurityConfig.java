@@ -50,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/ingresos").authenticated()
                         .requestMatchers("/api/gastos/**").authenticated()
                         .requestMatchers("/api/ingresos/**").authenticated()
+                        .requestMatchers("/api/reportes/**").authenticated()
                         .requestMatchers("/", "/health", "/ping").permitAll()
                         .requestMatchers("/api/auth/google-login").permitAll()
                         .requestMatchers("/api/auth/test-login").permitAll()

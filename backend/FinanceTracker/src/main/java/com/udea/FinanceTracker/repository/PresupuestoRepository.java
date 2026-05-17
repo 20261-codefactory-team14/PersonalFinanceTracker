@@ -29,4 +29,12 @@ public interface PresupuestoRepository extends JpaRepository<Presupuesto, Long> 
 
     // Todos los presupuestos de un usuario
     List<Presupuesto> findByIdUsuarioOrderByFechaDesc(Long idUsuario);
+
+    // Busca el último presupuesto completado (fecha + 30 días debe ser menor a hoy)
+    // El campo 'fecha' es la fecha de inicio del presupuesto, por lo que se suma 30 días para obtener la fecha de vencimiento
+    @Query("SELECT p FROM Presupuesto p WHERE p.idUsuario = :idUsuario AND DATE_ADD(p.fecha, INTERVAL 30 DAY) < :today ORDER BY p.fecha DESC LIMIT 1")
+    Optional<Presupuesto> findLastFinishedBudget(
+            @Param("idUsuario") Long idUsuario,
+            @Param("today") LocalDate today
+    );
 }
