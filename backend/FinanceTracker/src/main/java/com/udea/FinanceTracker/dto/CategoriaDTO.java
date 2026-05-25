@@ -28,4 +28,4 @@ public class CategoriaDTO {
     public void setNombre(String nombre) {
         this.nombre = nombre;
     }
-} 
+}
