@@ -21,4 +21,4 @@ public class ActualizarCategoriaRequest {
     public void setNombre(String nombre) {
         this.nombre = nombre;
     }
-}
+} 
