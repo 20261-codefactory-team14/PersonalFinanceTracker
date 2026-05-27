@@ -5,13 +5,10 @@ import com.udea.FinanceTracker.dto.IngresoResponseDTO;
 import com.udea.FinanceTracker.service.IngresoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/ingresos")
@@ -36,27 +33,10 @@ public class IngresoController {
         return ResponseEntity.ok(ingresoService.listarIngresos());
     }
 
-    /**
-     * Obtiene un ingreso específico por su ID
-     *
-     * ==================== CORRECCIÓN DE ERROR 4 ====================
-     * Cuando el ingreso no existe, se retorna 404 Not Found en lugar de 500
-     * ==================== FIN CORRECCIÓN ====================
-     */
     @Operation(summary = "Obtener ingreso por ID", description = "Obtiene un ingreso específico por su ID")
     @GetMapping("/{id}")
-    public ResponseEntity<?> obtenerIngresoPorId(@PathVariable Long id) {
-        try {
-            IngresoResponseDTO response = ingresoService.obtenerIngresoPorId(id);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            if (e.getMessage() != null && e.getMessage().contains("Ingreso no encontrado")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-            }
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-        }
+    public ResponseEntity<IngresoResponseDTO> obtenerIngresoPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(ingresoService.obtenerIngresoPorId(id));
     }
 
     @Operation(summary = "Listar ingresos por usuario", description = "Obtiene los ingresos asociados a un usuario")

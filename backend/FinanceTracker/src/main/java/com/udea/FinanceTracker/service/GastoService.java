@@ -28,17 +28,7 @@ public class GastoService {
         this.categoriaRepository = categoriaRepository;
     }
 
-    /**
-     * Crea un nuevo gasto asociado a un usuario y una categoría
-     *
-     * ==================== CORRECCIÓN DE ERROR 5 ====================
-     * Se agrega validación para que el campo "valor" no sea nulo
-     * Si es nulo, lanza RuntimeException con mensaje claro
-     * Esto cumple con el criterio de aceptación de HU 2.2
-     * ==================== FIN CORRECCIÓN ====================
-     */
     public GastoResponseDTO crearGasto(GastoDTO dto) {
-        // Validar que el valor no sea nulo (campo obligatorio)
         if (dto.getValor() == null) {
             throw new RuntimeException("El valor del gasto es obligatorio");
         }

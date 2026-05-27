@@ -7,7 +7,6 @@ import com.udea.FinanceTracker.mapper.PresupuestoMapper;
 import com.udea.FinanceTracker.repository.PresupuestoRepository;
 import org.springframework.stereotype.Service;
 import java.util.List;
-import java.math.BigDecimal;
 
 import java.time.LocalDate;
 import java.util.Optional;
@@ -26,16 +25,11 @@ public class PresupuestoService {
 
     /**
      * Crea un presupuesto mensual para el usuario.
-     * Lanza excepción si ya tiene uno activo.
-     *
-     * ==================== CORRECCIÓN DE ERRORES 6 y 7 ====================
-     * Se agrega validación para rechazar valores 0 o negativos
-     * Esto cumple con el criterio de aceptación de HU 2.4
-     * ==================== FIN CORRECCIÓN ====================
+     * Lanza excepción si ya tiene uno activo o si el monto es inválido.
      */
     public PresupuestoDTO crearPresupuesto(Long idUsuario, CrearPresupuestoRequest request) throws Exception {
-        // Validar que el valor sea mayor a cero
-        if (request.getValor() == null || request.getValor().compareTo(BigDecimal.ZERO) <= 0) {
+        // Validación del monto
+        if (request.getValor() == null || request.getValor().signum() <= 0) {
             throw new Exception("El valor del presupuesto debe ser mayor a cero");
         }
 
@@ -50,7 +44,7 @@ public class PresupuestoService {
 
         Presupuesto presupuesto = new Presupuesto(
                 request.getValor(),
-                LocalDate.now(),
+                LocalDate.now(),  // fecha se asigna automáticamente
                 idUsuario
         );
 
@@ -86,30 +80,6 @@ public class PresupuestoService {
         return presupuestos.stream()
                 .map(presupuestoMapper::toDTO)
                 .toList();
-    }
-
-    /**
-     * Actualiza el presupuesto activo del usuario.
-     * Solo permite modificar el valor.
-     */
-    public PresupuestoDTO actualizarPresupuesto(Long idUsuario, CrearPresupuestoRequest request) throws Exception {
-        LocalDate fechaLimite = LocalDate.now().minusMonths(1);
-
-        Optional<Presupuesto> presupuestoOpt = presupuestoRepository
-                .findPresupuestoActivoByUsuario(idUsuario, fechaLimite);
-
-        if (presupuestoOpt.isEmpty()) {
-            throw new Exception("El usuario no tiene un presupuesto activo para actualizar");
-        }
-
-        Presupuesto presupuesto = presupuestoOpt.get();
-
-        // Actualizar solo el valor
-        presupuesto.setValor(request.getValor());
-
-        presupuesto = presupuestoRepository.save(presupuesto);
-
-        return presupuestoMapper.toDTO(presupuesto);
     }
 
 }

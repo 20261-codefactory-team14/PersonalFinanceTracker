@@ -230,4 +230,281 @@ class GastoServiceTest {
         verify(usuarioRepository, never()).findById(anyLong());
         verify(categoriaRepository, never()).findById(anyLong());
     }
+
+    /**
+     * Prueba del camino feliz: Obtención exitosa de gasto por ID.
+     *
+     * Tipo de prueba: Funcional positivo (Camino Feliz)
+     * Patrón AAA: Arrange, Act, Assert
+     */
+    @Test
+    void obtenerGastoPorId_WithValidId_ReturnsGastoResponse() {
+        // ==================== ARRANGE ====================
+        Long gastoId = 1L;
+
+        Usuario usuario = new Usuario();
+        usuario.setId(USER_ID);
+
+        Categoria categoria = new Categoria();
+        categoria.setId(CATEGORIA_ID);
+        categoria.setNombre("Alimentación");
+
+        Gasto gasto = new Gasto(MONTO, LocalDate.now(), "Almuerzo", usuario, categoria);
+        gasto.setId(gastoId);
+
+        given(gastoRepository.findById(gastoId)).willReturn(Optional.of(gasto));
+
+        // ==================== ACT ====================
+        GastoResponseDTO response = gastoService.obtenerGastoPorId(gastoId);
+
+        // ==================== ASSERT ====================
+        assertThat(response).isNotNull();
+        assertThat(response.getId()).isEqualTo(gastoId);
+        assertThat(response.getValor()).isEqualByComparingTo(MONTO);
+
+        verify(gastoRepository).findById(gastoId);
+    }
+
+    /**
+     * Prueba de excepción: Obtención de gasto con ID inexistente.
+     *
+     * Tipo de prueba: Validación negativa (Excepción)
+     * Patrón AAA: Arrange, Act, Assert
+     */
+    @Test
+    void obtenerGastoPorId_WithNonExistentId_ThrowsException() {
+        // ==================== ARRANGE ====================
+        Long gastoId = 999L;
+
+        given(gastoRepository.findById(gastoId)).willReturn(Optional.empty());
+
+        // ==================== ACT & ASSERT ====================
+        assertThatThrownBy(() -> gastoService.obtenerGastoPorId(gastoId))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Gasto no encontrado");
+    }
+
+    /**
+     * Prueba del camino feliz: Actualización exitosa de gasto.
+     *
+     * Tipo de prueba: Funcional positivo (Camino Feliz)
+     * Patrón AAA: Arrange, Act, Assert
+     */
+    @Test
+    void actualizarGasto_WithValidData_Success() {
+        // ==================== ARRANGE ====================
+        Long gastoId = 1L;
+        BigDecimal newMonto = new BigDecimal("50.00");
+
+        Usuario usuario = new Usuario();
+        usuario.setId(USER_ID);
+
+        Categoria categoria = new Categoria();
+        categoria.setId(CATEGORIA_ID);
+        categoria.setNombre("Alimentación");
+
+        Gasto gastoExistente = new Gasto(MONTO, LocalDate.now(), "Almuerzo", usuario, categoria);
+        gastoExistente.setId(gastoId);
+
+        GastoDTO dto = new GastoDTO();
+        dto.setValor(newMonto);
+        dto.setFecha(LocalDate.now());
+        dto.setDescripcion("Cena");
+        dto.setIdUsuario(USER_ID);
+        dto.setIdCategoria(CATEGORIA_ID);
+
+        given(gastoRepository.findById(gastoId)).willReturn(Optional.of(gastoExistente));
+        given(usuarioRepository.findById(USER_ID)).willReturn(Optional.of(usuario));
+        given(categoriaRepository.findById(CATEGORIA_ID)).willReturn(Optional.of(categoria));
+        given(gastoRepository.save(any(Gasto.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        // ==================== ACT ====================
+        GastoResponseDTO response = gastoService.actualizarGasto(gastoId, dto);
+
+        // ==================== ASSERT ====================
+        assertThat(response).isNotNull();
+        assertThat(response.getValor()).isEqualByComparingTo(newMonto);
+        assertThat(response.getDescripcion()).isEqualTo("Cena");
+
+        verify(gastoRepository).findById(gastoId);
+        verify(gastoRepository).save(any(Gasto.class));
+    }
+
+    /**
+     * Prueba de excepción: Actualización de gasto inexistente.
+     *
+     * Tipo de prueba: Validación negativa (Excepción)
+     * Patrón AAA: Arrange, Act, Assert
+     */
+    @Test
+    void actualizarGasto_WithNonExistentGasto_ThrowsException() {
+        // ==================== ARRANGE ====================
+        Long gastoId = 999L;
+
+        GastoDTO dto = new GastoDTO();
+        dto.setValor(MONTO);
+        dto.setFecha(LocalDate.now());
+        dto.setIdUsuario(USER_ID);
+        dto.setIdCategoria(CATEGORIA_ID);
+
+        given(gastoRepository.findById(gastoId)).willReturn(Optional.empty());
+
+        // ==================== ACT & ASSERT ====================
+        assertThatThrownBy(() -> gastoService.actualizarGasto(gastoId, dto))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Gasto no encontrado");
+    }
+
+    /**
+     * Prueba de excepción: Actualización de gasto con usuario inexistente.
+     *
+     * Tipo de prueba: Validación negativa (Excepción)
+     * Patrón AAA: Arrange, Act, Assert
+     */
+    @Test
+    void actualizarGasto_WithNonExistentUser_ThrowsException() {
+        // ==================== ARRANGE ====================
+        Long gastoId = 1L;
+
+        Usuario usuario = new Usuario();
+        usuario.setId(USER_ID);
+
+        Categoria categoria = new Categoria();
+        categoria.setId(CATEGORIA_ID);
+
+        Gasto gastoExistente = new Gasto(MONTO, LocalDate.now(), "Almuerzo", usuario, categoria);
+        gastoExistente.setId(gastoId);
+
+        GastoDTO dto = new GastoDTO();
+        dto.setValor(MONTO);
+        dto.setFecha(LocalDate.now());
+        dto.setIdUsuario(999L);  // Usuario inexistente
+        dto.setIdCategoria(CATEGORIA_ID);
+
+        given(gastoRepository.findById(gastoId)).willReturn(Optional.of(gastoExistente));
+        given(usuarioRepository.findById(999L)).willReturn(Optional.empty());
+
+        // ==================== ACT & ASSERT ====================
+        assertThatThrownBy(() -> gastoService.actualizarGasto(gastoId, dto))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Usuario no encontrado");
+    }
+
+    /**
+     * Prueba de excepción: Actualización de gasto con categoría inexistente.
+     *
+     * Tipo de prueba: Validación negativa (Excepción)
+     * Patrón AAA: Arrange, Act, Assert
+     */
+    @Test
+    void actualizarGasto_WithNonExistentCategoria_ThrowsException() {
+        // ==================== ARRANGE ====================
+        Long gastoId = 1L;
+
+        Usuario usuario = new Usuario();
+        usuario.setId(USER_ID);
+
+        Categoria categoria = new Categoria();
+        categoria.setId(CATEGORIA_ID);
+
+        Gasto gastoExistente = new Gasto(MONTO, LocalDate.now(), "Almuerzo", usuario, categoria);
+        gastoExistente.setId(gastoId);
+
+        GastoDTO dto = new GastoDTO();
+        dto.setValor(MONTO);
+        dto.setFecha(LocalDate.now());
+        dto.setIdUsuario(USER_ID);
+        dto.setIdCategoria(999L);  // Categoría inexistente
+
+        given(gastoRepository.findById(gastoId)).willReturn(Optional.of(gastoExistente));
+        given(usuarioRepository.findById(USER_ID)).willReturn(Optional.of(usuario));
+        given(categoriaRepository.findById(999L)).willReturn(Optional.empty());
+
+        // ==================== ACT & ASSERT ====================
+        assertThatThrownBy(() -> gastoService.actualizarGasto(gastoId, dto))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Categoría no encontrada");
+    }
+
+    /**
+     * Prueba del camino feliz: Eliminación exitosa de gasto.
+     *
+     * Tipo de prueba: Funcional positivo (Camino Feliz)
+     * Patrón AAA: Arrange, Act, Assert
+     */
+    @Test
+    void eliminarGasto_WithValidId_Success() {
+        // ==================== ARRANGE ====================
+        Long gastoId = 1L;
+
+        given(gastoRepository.existsById(gastoId)).willReturn(true);
+
+        // ==================== ACT ====================
+        gastoService.eliminarGasto(gastoId);
+
+        // ==================== ASSERT ====================
+        verify(gastoRepository).existsById(gastoId);
+        verify(gastoRepository).deleteById(gastoId);
+    }
+
+    /**
+     * Prueba de excepción: Eliminación de gasto inexistente.
+     *
+     * Tipo de prueba: Validación negativa (Excepción)
+     * Patrón AAA: Arrange, Act, Assert
+     */
+    @Test
+    void eliminarGasto_WithNonExistentId_ThrowsException() {
+        // ==================== ARRANGE ====================
+        Long gastoId = 999L;
+
+        given(gastoRepository.existsById(gastoId)).willReturn(false);
+
+        // ==================== ACT & ASSERT ====================
+        assertThatThrownBy(() -> gastoService.eliminarGasto(gastoId))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Gasto no encontrado");
+
+        // Verificar que NO se intentó eliminar
+        verify(gastoRepository, never()).deleteById(gastoId);
+    }
+
+    /**
+     * Prueba de precisión decimal: Soporte de decimales en gastos.
+     *
+     * Tipo de prueba: Funcional positivo (Precisión)
+     * Patrón AAA: Arrange, Act, Assert
+     */
+    @Test
+    void crearGasto_WithDecimalMonto_PreservesExactPrecision() {
+        // ==================== ARRANGE ====================
+        BigDecimal montoDecimal = new BigDecimal("0.45");
+
+        GastoDTO dto = new GastoDTO();
+        dto.setValor(montoDecimal);
+        dto.setFecha(LocalDate.now());
+        dto.setDescripcion("Chicle");
+        dto.setIdUsuario(USER_ID);
+        dto.setIdCategoria(CATEGORIA_ID);
+
+        Usuario usuario = new Usuario();
+        usuario.setId(USER_ID);
+
+        Categoria categoria = new Categoria();
+        categoria.setId(CATEGORIA_ID);
+
+        Gasto gastoGuardado = new Gasto(montoDecimal, LocalDate.now(), "Chicle", usuario, categoria);
+        gastoGuardado.setId(1L);
+
+        given(usuarioRepository.findById(USER_ID)).willReturn(Optional.of(usuario));
+        given(categoriaRepository.findById(CATEGORIA_ID)).willReturn(Optional.of(categoria));
+        given(gastoRepository.save(any(Gasto.class))).willReturn(gastoGuardado);
+
+        // ==================== ACT ====================
+        GastoResponseDTO response = gastoService.crearGasto(dto);
+
+        // ==================== ASSERT ====================
+        assertThat(response.getValor()).isEqualByComparingTo(montoDecimal);
+        assertThat(response.getValor().toString()).isEqualTo("0.45");
+    }
 }

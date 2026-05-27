@@ -20,46 +20,15 @@ public class IngresoDTO {
     @Schema(description = "ID del usuario", example = "1")
     private Long idUsuario;
 
-    @Schema(description = "ID de la categoría", example = "2")
-    private Long idCategoria;
+    public BigDecimal getValor() { return valor; }
+    public void setValor(BigDecimal valor) { this.valor = valor; }
 
-    public BigDecimal getValor() {
-        return valor;
-    }
+    public LocalDate getFecha() { return fecha; }
+    public void setFecha(LocalDate fecha) { this.fecha = fecha; }
 
-    public void setValor(BigDecimal valor) {
-        this.valor = valor;
-    }
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
 
-    public LocalDate getFecha() {
-        return fecha;
-    }
-
-    public void setFecha(LocalDate fecha) {
-        this.fecha = fecha;
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
-    }
-
-    public Long getIdUsuario() {
-        return idUsuario;
-    }
-
-    public void setIdUsuario(Long idUsuario) {
-        this.idUsuario = idUsuario;
-    }
-
-    public Long getIdCategoria() {
-        return idCategoria;
-    }
-
-    public void setIdCategoria(Long idCategoria) {
-        this.idCategoria = idCategoria;
-    }
+    public Long getIdUsuario() { return idUsuario; }
+    public void setIdUsuario(Long idUsuario) { this.idUsuario = idUsuario; }
 }

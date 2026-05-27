@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-
 @Entity
 @Table(name = "tbl_ingreso")
 public class Ingreso {
@@ -26,70 +25,27 @@ public class Ingreso {
     @JoinColumn(name = "id_usuario", nullable = false)
     private Usuario usuario;
 
-    @Column(name = "id_categoria", nullable = false)
-    private Long idCategoria;
-
     public Ingreso() {}
 
-    public Ingreso(
-            BigDecimal valor,
-            LocalDate fecha,
-            String descripcion,
-            Usuario usuario,
-            Long idCategoria
-    ) {
+    public Ingreso(BigDecimal valor, LocalDate fecha, String descripcion, Usuario usuario) {
         this.valor = valor;
         this.fecha = fecha;
         this.descripcion = descripcion;
         this.usuario = usuario;
-        this.idCategoria = idCategoria;
     }
 
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public BigDecimal getValor() { return valor; }
+    public void setValor(BigDecimal valor) { this.valor = valor; }
 
-    public BigDecimal getValor() {
-        return valor;
-    }
+    public LocalDate getFecha() { return fecha; }
+    public void setFecha(LocalDate fecha) { this.fecha = fecha; }
 
-    public void setValor(BigDecimal valor) {
-        this.valor = valor;
-    }
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
 
-    public LocalDate getFecha() {
-        return fecha;
-    }
-
-    public void setFecha(LocalDate fecha) {
-        this.fecha = fecha;
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
-    }
-
-    public Usuario getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
-    }
-
-    public Long getIdCategoria() {
-        return idCategoria;
-    }
-
-    public void setIdCategoria(Long idCategoria) {
-        this.idCategoria = idCategoria;
-    }
+    public Usuario getUsuario() { return usuario; }
+    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
 }
