@@ -25,9 +25,14 @@ public class PresupuestoService {
 
     /**
      * Crea un presupuesto mensual para el usuario.
-     * Lanza excepción si ya tiene uno activo.
+     * Lanza excepción si ya tiene uno activo o si el monto es inválido.
      */
     public PresupuestoDTO crearPresupuesto(Long idUsuario, CrearPresupuestoRequest request) throws Exception {
+        // Validación del monto
+        if (request.getValor() == null || request.getValor().signum() <= 0) {
+            throw new Exception("El valor del presupuesto debe ser mayor a cero");
+        }
+
         LocalDate fechaLimite = LocalDate.now().minusMonths(1);
 
         Boolean tienePresupuestoActivo = presupuestoRepository

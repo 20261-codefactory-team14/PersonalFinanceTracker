@@ -178,7 +178,15 @@ public class UsuarioService {
         }
         if (request.getFechaNacimiento() != null) {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            usuario.setFechaNacimiento(dateFormat.parse(request.getFechaNacimiento()));
+            java.util.Date parsedDate = dateFormat.parse(request.getFechaNacimiento());
+            java.util.Date today = new java.util.Date();
+
+            // Validar que la fecha no sea en el futuro
+            if (parsedDate.after(today)) {
+                throw new Exception("La fecha de nacimiento no puede ser en el futuro");
+            }
+
+            usuario.setFechaNacimiento(parsedDate);
         }
 
         usuario.setProfileCompleted(true);

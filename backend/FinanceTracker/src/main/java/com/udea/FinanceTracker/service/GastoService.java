@@ -29,6 +29,10 @@ public class GastoService {
     }
 
     public GastoResponseDTO crearGasto(GastoDTO dto) {
+        if (dto.getValor() == null) {
+            throw new RuntimeException("El valor del gasto es obligatorio");
+        }
+
         Usuario usuario = usuarioRepository.findById(dto.getIdUsuario())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
