@@ -59,15 +59,13 @@ class IngresoControllerTest {
         request.setFecha(LocalDate.now());
         request.setDescripcion("Salario Mensual");
         request.setIdUsuario(1L);
-        request.setIdCategoria(2L);
 
         IngresoResponseDTO response = new IngresoResponseDTO(
                 1L,
                 new BigDecimal("2000.00"),
                 LocalDate.now(),
                 "Salario Mensual",
-                1L,
-                2L
+                1L
         );
 
         given(ingresoService.crearIngreso(any(IngresoDTO.class))).willReturn(response);
@@ -79,8 +77,7 @@ class IngresoControllerTest {
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.valor").value(2000.00))
                 .andExpect(jsonPath("$.descripcion").value("Salario Mensual"))
-                .andExpect(jsonPath("$.idUsuario").value(1))
-                .andExpect(jsonPath("$.idCategoria").value(2));
+                .andExpect(jsonPath("$.idUsuario").value(1));
     }
 
     @Test
@@ -90,15 +87,13 @@ class IngresoControllerTest {
         request.setFecha(LocalDate.now());
         request.setDescripcion("Intereses bancarios");
         request.setIdUsuario(1L);
-        request.setIdCategoria(2L);
 
         IngresoResponseDTO response = new IngresoResponseDTO(
                 1L,
                 new BigDecimal("0.45"),
                 LocalDate.now(),
                 "Intereses bancarios",
-                1L,
-                2L
+                1L
         );
 
         given(ingresoService.crearIngreso(any(IngresoDTO.class))).willReturn(response);
@@ -108,8 +103,7 @@ class IngresoControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.valor").value(0.45))
-                .andExpect(jsonPath("$.valor").isNumber())
-                .andExpect(jsonPath("$.idCategoria").value(2));
+                .andExpect(jsonPath("$.valor").isNumber());
 
         String responseJson = mockMvc.perform(post("/api/ingresos")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -129,16 +123,14 @@ class IngresoControllerTest {
                         new BigDecimal("2000.00"),
                         LocalDate.now(),
                         "Salario",
-                        1L,
-                        2L
+                        1L
                 ),
                 new IngresoResponseDTO(
                         2L,
                         new BigDecimal("500.00"),
                         LocalDate.now(),
                         "Bono",
-                        1L,
-                        3L
+                        1L
                 )
         );
 
@@ -148,9 +140,7 @@ class IngresoControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].valor").value(2000.00))
-                .andExpect(jsonPath("$[0].idCategoria").value(2))
-                .andExpect(jsonPath("$[1].valor").value(500.00))
-                .andExpect(jsonPath("$[1].idCategoria").value(3));
+                .andExpect(jsonPath("$[1].valor").value(500.00));
     }
 
     @Test
@@ -162,8 +152,7 @@ class IngresoControllerTest {
                 new BigDecimal("2000.00"),
                 LocalDate.now(),
                 "Salario",
-                1L,
-                2L
+                1L
         );
 
         given(ingresoService.obtenerIngresoPorId(ingresoId)).willReturn(response);
@@ -171,8 +160,7 @@ class IngresoControllerTest {
         mockMvc.perform(get("/api/ingresos/{id}", ingresoId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.valor").value(2000.00))
-                .andExpect(jsonPath("$.idCategoria").value(2));
+                .andExpect(jsonPath("$.valor").value(2000.00));
     }
 
     @Test
@@ -197,16 +185,14 @@ class IngresoControllerTest {
                         new BigDecimal("2000.00"),
                         LocalDate.now(),
                         "Salario",
-                        usuarioId,
-                        2L
+                        usuarioId
                 ),
                 new IngresoResponseDTO(
                         2L,
                         new BigDecimal("500.00"),
                         LocalDate.now(),
                         "Bono",
-                        usuarioId,
-                        3L
+                        usuarioId
                 )
         );
 
@@ -214,9 +200,7 @@ class IngresoControllerTest {
 
         mockMvc.perform(get("/api/ingresos/usuario/{idUsuario}", usuarioId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].idCategoria").value(2))
-                .andExpect(jsonPath("$[1].idCategoria").value(3));
+                .andExpect(jsonPath("$.length()").value(2));
     }
 
     @Test
@@ -228,15 +212,13 @@ class IngresoControllerTest {
         request.setFecha(LocalDate.now());
         request.setDescripcion("Salario Actualizado");
         request.setIdUsuario(1L);
-        request.setIdCategoria(2L);
 
         IngresoResponseDTO response = new IngresoResponseDTO(
                 ingresoId,
                 new BigDecimal("2500.00"),
                 LocalDate.now(),
                 "Salario Actualizado",
-                1L,
-                2L
+                1L
         );
 
         given(ingresoService.actualizarIngreso(eq(ingresoId), any(IngresoDTO.class)))
@@ -247,8 +229,7 @@ class IngresoControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.valor").value(2500.00))
-                .andExpect(jsonPath("$.descripcion").value("Salario Actualizado"))
-                .andExpect(jsonPath("$.idCategoria").value(2));
+                .andExpect(jsonPath("$.descripcion").value("Salario Actualizado"));
     }
 
     @Test
