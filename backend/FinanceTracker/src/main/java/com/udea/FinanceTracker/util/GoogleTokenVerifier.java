@@ -37,9 +37,9 @@ public class GoogleTokenVerifier {
         try {
             // Initialize verifier if not already done
             if (verifier == null) {
-                logger.info("client id being used: {}", googleClientId);
-                logger.info("Received token: {}", idToken);
-                logger.info("Token parts: {}", idToken.split("\\.").length);
+                logger.info("client id being used");
+                logger.info("Received token");
+                logger.info("Token parts");
                 logger.info("Initializing GoogleIdTokenVerifier");
                 verifier = new GoogleIdTokenVerifier.Builder(
                         new NetHttpTransport(),
@@ -56,35 +56,8 @@ public class GoogleTokenVerifier {
                     GsonFactory.getDefaultInstance(), idToken
             );
 
-
-            GoogleIdToken.Payload p = parsedToken.getPayload();
-
-// Check each condition manually
-            long currentTime = System.currentTimeMillis() / 1000;
-
-            System.out.println("=== MANUAL CLAIM CHECK ===");
-            System.out.println("iss: " + p.getIssuer());
-            System.out.println("iss valid: " + (
-                    p.getIssuer().equals("accounts.google.com") ||
-                            p.getIssuer().equals("https://accounts.google.com")
-            ));
-
-            System.out.println("aud: " + p.getAudience());
-            System.out.println("aud valid: " + p.getAudience().equals(googleClientId));
-
-            System.out.println("exp: " + p.getExpirationTimeSeconds());
-            System.out.println("current time: " + currentTime);
-            System.out.println("exp valid (not expired): " + (p.getExpirationTimeSeconds() > currentTime));
-
-            System.out.println("iat: " + p.getIssuedAtTimeSeconds());
-// Google requires iat to not be too far in the future either
-            System.out.println("iat valid (not in future): " + (p.getIssuedAtTimeSeconds() <= currentTime + 300));
-
-            boolean clockValid = verifier.verify(parsedToken);
-            System.out.println(">>> Payload Valid(audd/iss/exp): " + clockValid); // false = failed
-
             GoogleIdToken verified = verifier.verify(idToken);
-            System.out.println(">>> Verified token: " + verified); // null = failed
+    
 
             if (verified == null) throw new RuntimeException("Verification returned null");
 
