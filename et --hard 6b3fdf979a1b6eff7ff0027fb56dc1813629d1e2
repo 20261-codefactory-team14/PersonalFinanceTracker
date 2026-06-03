@@ -1,0 +1,5 @@
+[33m6b3fdf9[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m Refactor GoogleTokenVerifier by simplifying checks
+[33m664b864[m Remove CrossOrigin annotation from UsuarioController
+[33m8c36401[m Restrict CORS origins to specific domains
+[33m816a4c1[m Añadiendo tests para los controllers
+[33m846f71a[m Corrigiendo tests de token verifier y repository

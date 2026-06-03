@@ -273,4 +273,31 @@ public class PresupuestoController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
     }
+
+
+    @Operation(
+            summary = "Actualizar presupuesto activo",
+            description = "Actualiza el valor del presupuesto activo del usuario autenticado.",
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PutMapping
+    public ResponseEntity<?> actualizarPresupuesto(
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody CrearPresupuestoRequest request
+    ) {
+        try {
+            String token = authHeader.substring(7);
+            String email = usuarioService.getEmailFromToken(token);
+            Long idUsuario = usuarioService.getUserByEmail(email).getId();
+
+            PresupuestoDTO presupuesto = presupuestoService.actualizarPresupuesto(idUsuario, request);
+
+            return ResponseEntity.ok(presupuesto);
+
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+    }
 }
